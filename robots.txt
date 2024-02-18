@@ -1,4 +1,2 @@
 User-agent: *
-Disallow:
-
-Sitemap: https://maxwellshepherd.github.io/sitemap.xml
+Disallow: /
