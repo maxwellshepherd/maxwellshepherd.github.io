@@ -1,0 +1,1 @@
+This is currently a repo for a github pages deployment. I would like to replace all of it with just an index.html file that says hello world. Remember we should keep the CNAME file though because we need that for our custom domain. Make sure after you delete all your files and create the index.html that it works as a github pages repo. think hard
