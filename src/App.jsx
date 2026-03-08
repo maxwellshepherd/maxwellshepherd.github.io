@@ -92,7 +92,7 @@ function App() {
             </div>
           </div>
 
-          {/* Right Content - Profile Image */}
+          {/* Right Content Profile Image */}
           <div className="lg:col-span-1 flex flex-col items-center space-y-4">
             <div className="w-full">
               <img
