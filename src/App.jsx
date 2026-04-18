@@ -14,9 +14,9 @@ function App() {
               about
             </a>
             <a
-              href="/Maxwell_Shepherd_Resume.pdf"
+              href="/resume-784acda1c09a1b7d.pdf"
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener noreferrer nofollow"
               className="text-gray-600 hover:text-gray-800 transition-colors text-sm"
             >
               resume
@@ -81,9 +81,9 @@ function App() {
               <p className="pt-2">
                 For more on my technical skills and experience, see my{" "}
                 <a
-                  href="/Maxwell_Shepherd_Resume.pdf"
+                  href="/resume-784acda1c09a1b7d.pdf"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener noreferrer nofollow"
                   className="text-blue-600 hover:text-blue-700 transition-colors underline decoration-blue-300"
                 >
                   resume
