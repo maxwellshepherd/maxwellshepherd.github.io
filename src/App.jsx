@@ -41,8 +41,8 @@ function App() {
 
             <div className="space-y-5 text-gray-700 leading-relaxed text-lg">
               <p>
-                I'm a data scientist and industrial engineer pursuing my M.S. in Data Science
-                at Johns Hopkins University, specializing in machine learning and artificial
+                I'm a data scientist and industrial engineer with an M.S. in Data Science
+                from Johns Hopkins University, specializing in machine learning and artificial
                 intelligence.
               </p>
 
