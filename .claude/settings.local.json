@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_close",
+      "Bash(rm -f \"src/assets/2025-07-05 07.27.23-1.jpg\" mshep-after-name.png mshep-after.png mshep-header-final.png mshep-header.png mshep-header2.png shreey-reference.png)",
+      "Bash(rm -rf .playwright-mcp)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://127.0.0.1:5174/src/assets/me.png\")",
+      "Bash(curl -s \"http://127.0.0.1:5174/src/App.jsx?t=$\\(date +%s\\)\")",
+      "Bash(pkill -f \"vite.*5174\")",
+      "Bash(rm -rf /tmp/vite-cache-mshep)",
+      "Bash(VITE_CACHE_DIR=/tmp/vite-cache-mshep nohup npx vite --port 5174 --host 0.0.0.0 --force)",
+      "Bash(disown)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:5174/src/assets/me.png)",
+      "Bash(VITE_CACHE_DIR=/tmp/vite-cache-mshep nohup npx vite --port 5174 --host 0.0.0.0)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:5174/)",
+      "Bash(powershell.exe -NoProfile -Command \"Get-NetTCPConnection -LocalPort 5174 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State,OwningProcess | Format-Table; Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State,OwningProcess | Format-Table\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-Process node -ErrorAction SilentlyContinue | Format-Table Id,ProcessName,Path,CommandLine -AutoSize\")",
+      "Bash(python3 -c \"from PIL import Image; print\\('PIL available'\\)\")"
+    ]
+  },
+  "enabledPlugins": {
+    "playwright@claude-plugins-official": true
+  }
+}

@@ -1,0 +1,46 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - navigation [ref=e6]:
+      - link "about" [ref=e7] [cursor=pointer]:
+        - /url: "#about"
+      - link "resume" [ref=e8] [cursor=pointer]:
+        - /url: /resume-784acda1c09a1b7d.pdf
+  - main [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - heading "Maxwell Shepherd" [level=1] [ref=e12]
+        - paragraph [ref=e13]: Data Scientist · Industrial Engineer
+        - paragraph [ref=e14]: Boeing · Johns Hopkins · mshep0306 [at] gmail [dot] com
+      - generic:
+        - img "Maxwell Shepherd"
+    - generic [ref=e15]:
+      - paragraph [ref=e16]: I'm a data scientist and industrial engineer with an M.S. in Data Science from Johns Hopkins University, specializing in machine learning and artificial intelligence.
+      - paragraph [ref=e17]: At Boeing, I serve as an Industrial Engineer and Data Scientist, leading cross-functional teams that build end-to-end machine learning and statistical modeling solutions across multi-terabyte datasets. I'm also a Boeing Designated Expert in Analytics, recognized as an enterprise-wide authority on business statistics, ML/GenAI, and analytics for an organization of 2,000+.
+      - paragraph [ref=e18]: "My work spans the full data lifecycle: architecting ETL pipelines processing 450M+ rows daily, building self-serve dashboards and full-stack analysis tools, and integrating agentic AI systems including LLM-powered automation."
+      - paragraph [ref=e19]:
+        - text: Before my current role, I supported process optimization and data automation across Boeing's 747, 767, 777X, and 787 programs, and held engineering internships at Disney and PTC Inc. I graduated from Purdue University in 2020 with a B.S. in Industrial Engineering. For more on my technical skills and experience, see my
+        - link "resume" [ref=e20] [cursor=pointer]:
+          - /url: /resume-784acda1c09a1b7d.pdf
+        - text: .
+    - generic [ref=e21]:
+      - heading "Selected Research" [level=2] [ref=e22]
+      - generic [ref=e23]:
+        - article [ref=e24]:
+          - 'link "Probing the limits of frontier AI: a benchmark of expert-level scientific questions" [ref=e26] [cursor=pointer]':
+            - /url: https://www.nature.com/articles/s41586-025-09962-4
+          - paragraph [ref=e27]: Humanity’s Last Exam Consortium (incl. Maxwell Shepherd)
+          - paragraph [ref=e28]:
+            - emphasis [ref=e29]: Nature
+          - paragraph [ref=e30]: A benchmark assessing frontier model performance on expert-level academic questions across the sciences and humanities.
+        - article [ref=e31]:
+          - 'link "Frozen Vision Transformers for Dense Prediction on Small Datasets: A Case Study in Arrow Localization" [ref=e33] [cursor=pointer]':
+            - /url: https://arxiv.org/abs/2604.16758
+          - paragraph [ref=e34]: Maxwell Shepherd
+          - paragraph [ref=e35]: arXiv:2604.16758, 2026
+          - paragraph [ref=e36]: A pipeline that combines color-based rectification with a frozen self-supervised vision transformer and feature upsampling to detect, localize, and score arrow punctures on indoor archery faces from only 48 annotated photographs.
+        - article [ref=e37]:
+          - 'link "Concurrent Streaming, Viewer Transfers, and Audience Loyalty in a Creator Ecosystem: A Minute-Level Longitudinal Study" [ref=e39] [cursor=pointer]':
+            - /url: https://arxiv.org/abs/2603.23773
+          - paragraph [ref=e40]: Maxwell Shepherd
+          - paragraph [ref=e41]: arXiv:2603.23773, 2026
+          - paragraph [ref=e42]: A minute-level longitudinal study of overlapping live-streaming audiences, characterizing concurrent streaming, viewer transfers, and audience loyalty within a creator ecosystem.
