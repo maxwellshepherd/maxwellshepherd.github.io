@@ -62,9 +62,9 @@ function App() {
             intelligence.
           </p>
           <p>
-            At Boeing, I serve as an Industrial Engineer and Data Scientist lead, heading
-            cross-functional teams that build end-to-end machine learning solutions
-            across multi-terabyte datasets. As a{' '}
+            At Boeing, I work as an Industrial Engineer and Engineering Data
+            Scientist, building end-to-end machine learning systems on multi-terabyte
+            aircraft datasets. As a{' '}
             <span className="font-medium text-gray-900">
               Boeing Designated Expert in Analytics
             </span>
@@ -73,15 +73,16 @@ function App() {
             agentic AI across an organization of 2,000+.
           </p>
           <p>
-            Much of my recent work focuses on bringing modern ML and agentic AI into
-            production. I design LLM-powered automation, integrate AI-agent systems
-            into core workflows, and guide their rollout across teams. This sits
-            alongside broader data lifecycle work, including architecting ETL
-            pipelines processing 450M+ rows daily and building full-stack web
-            applications that put models and analyses directly in users' hands.
-            The ability for a data scientist to operationalize their own work as
-            shippable tools, rather than handing off a static report, is one of the
-            most valuable skills in the field.
+            Much of my recent work focuses on agentic AI in production. I built and
+            deployed the organization's first agentic AI and computer-use automation
+            systems; those production agents now serve six teams and save an estimated
+            400 hours per week of manual work. This sits alongside broader data
+            lifecycle work, including architecting ETL pipelines that process 450M+
+            rows daily and shipping full-stack analytics platforms (Python, SQL, React)
+            that put models and analyses directly in users' hands. The ability for a
+            data scientist to operationalize their own work as shippable tools, rather
+            than handing off a static report, is one of the most valuable skills in
+            the field.
           </p>
           <p>
             Before my current role, I supported process optimization and data automation
