@@ -1,4 +1,4 @@
-import profilePhoto from './assets/me.png'
+import profilePhoto from './assets/me.webp'
 import hleImage from './assets/hle.png'
 import archeryImage from './assets/archery.png'
 import viewershipImage from './assets/viewership.png'
