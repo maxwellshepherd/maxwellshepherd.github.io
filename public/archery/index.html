@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Maxwell Shepherd vs Alex Grossman — Vegas 300 progression</title>
+<meta name="description" content="Arrow-by-arrow analysis of two archers' 2026 indoor Vegas 300 season at Champion Kirkland."/>
+<link rel="canonical" href="https://mshep.com/archery/"/>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .viz-root {
+    color-scheme: light;
+    --surface-0:      #f6f5f2;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f0efec;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #7c7b76;
+    --grid:           #e6e5e1;
+    --series-1:       #2a78d6;
+    --series-2:       #eb6834;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    min-height:100vh;
+  }
+  a.home { font-size:12.5px; color: var(--text-muted); text-decoration:none; display:inline-block; margin-bottom:18px; }
+  a.home:hover { color: var(--text-primary); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 40px 24px 72px; }
+  header h1 { font-size: 26px; letter-spacing:-.015em; margin: 0 0 6px; font-weight:640; }
+  header p.sub { margin:0 0 4px; color: var(--text-secondary); font-size: 14px; }
+  header p.meta { margin:0; color: var(--text-muted); font-size: 12.5px; }
+  .tiles { display:grid; grid-template-columns: repeat(auto-fit, minmax(178px,1fr)); gap:12px; margin:26px 0 8px; }
+  .tile { background: var(--surface-1); border:1px solid var(--grid); border-radius:12px; padding:14px 16px; }
+  .tile .k { font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color: var(--text-muted); margin-bottom:7px;
+             display:flex; align-items:center; gap:6px; }
+  .tile .k .dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .tile .v { font-size:27px; font-weight:640; letter-spacing:-.02em; line-height:1.1; font-variant-numeric: tabular-nums; }
+  .tile .n { font-size:12.5px; color: var(--text-secondary); margin-top:4px; }
+
+  figure { margin: 30px 0 0; background: var(--surface-1); border:1px solid var(--grid);
+           border-radius:12px; padding:20px 20px 14px; }
+  figcaption { margin:0 0 2px; }
+  figcaption .t { font-size:16px; font-weight:620; letter-spacing:-.01em; }
+  figcaption .d { font-size:13px; color: var(--text-secondary); margin-top:3px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; margin:12px 0 2px; font-size:13px; color: var(--text-secondary); }
+  .legend span.i { display:inline-flex; align-items:center; gap:7px; }
+  .legend .key { width:14px; height:3px; border-radius:2px; flex:none; }
+  .legend .keydot { width:9px; height:9px; border-radius:50%; flex:none; }
+  svg { display:block; width:100%; height:auto; overflow:visible; font-family:inherit; }
+  .ax { font-size:11.5px; fill: var(--text-muted); }
+  .axlab { font-size:11.5px; fill: var(--text-secondary); }
+  .note { font-size:12.5px; color: var(--text-muted); margin:10px 0 0; }
+  .note b { color: var(--text-secondary); font-weight:600; }
+
+  .tip { position:fixed; pointer-events:none; z-index:60; background: var(--surface-1);
+         border:1px solid var(--grid); border-radius:9px; padding:9px 11px; font-size:12.5px;
+         box-shadow: 0 6px 22px rgba(0,0,0,.14); opacity:0; transition:opacity .09s; min-width:150px; }
+  .tip .th { font-weight:640; margin-bottom:6px; font-size:12.5px; color: var(--text-primary); }
+  .tip .r { display:flex; align-items:center; gap:7px; justify-content:space-between; color: var(--text-secondary); }
+  .tip .r .lhs { display:flex; align-items:center; gap:7px; }
+  .tip .r .sw { width:8px; height:8px; border-radius:50%; flex:none; }
+  .tip .r b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  details.tbl { margin-top:14px; }
+  details.tbl summary { cursor:pointer; font-size:12.5px; color: var(--text-secondary); }
+  table { border-collapse: collapse; width:100%; margin-top:10px; font-size:12.5px; font-variant-numeric: tabular-nums; }
+  th, td { text-align:right; padding:5px 8px; border-bottom:1px solid var(--grid); color: var(--text-secondary); }
+  th:first-child, td:first-child { text-align:left; }
+  th { color: var(--text-muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; }
+  td.hl { color: var(--text-primary); font-weight:600; }
+  h2.sec { font-size:13px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted);
+           margin:44px 0 -6px; font-weight:640; }
+</style>
+</head>
+<body>
+<div class="viz-root"><div class="wrap">
+<a class="home" href="/">&larr; mshep.com</a>
+<header>
+  <div>
+    <h1>Maxwell Shepherd vs Alex Grossman</h1>
+    <p class="sub">WA/Vegas 300 · 30 arrows · Freestyle Limited Recurve · Champion&nbsp;— Kirkland</p>
+    <p class="meta">11 complete rounds each · 5 Apr – 16 Aug 2026 · 9 shared events · source: dwhitnee.github.io/archery</p>
+  </div>
+</header>
+<div id="app"></div>
+</div></div>
+<div class="tip" id="tip"></div>
+<script>
+const DATA =
+{"series": {"Maxwell Shepherd": {"points": [{"d": "2026-04-05", "x": 0.0, "y": 223.0, "x_ct": 0}, {"d": "2026-04-12", "x": 7.0, "y": 252.0, "x_ct": 2}, {"d": "2026-04-19", "x": 14.0, "y": 242.0, "x_ct": 1}, {"d": "2026-04-26", "x": 21.0, "y": 227.0, "x_ct": 2}, {"d": "2026-05-10", "x": 35.0, "y": 199.0, "x_ct": 1}, {"d": "2026-06-28", "x": 84.0, "y": 219.0, "x_ct": 0}, {"d": "2026-07-05", "x": 91.0, "y": 226.0, "x_ct": 3}, {"d": "2026-07-19", "x": 105.0, "y": 194.0, "x_ct": 1}, {"d": "2026-07-26", "x": 112.0, "y": 213.0, "x_ct": 1}, {"d": "2026-08-09", "x": 126.0, "y": 181.0, "x_ct": 0}, {"d": "2026-08-16", "x": 133.0, "y": 221.0, "x_ct": 0}], "slope": -0.24299315101763239, "intercept": 233.99081944916696, "slope_per_month": -7.2897945305289715, "mean": 217.9090909090909, "sd": 20.59832296792409, "best": 252, "worst": 181, "first3": 239.0, "last3": 205.0}, "Alex Grossman": {"points": [{"d": "2026-04-05", "x": 0.0, "y": 211.0, "x_ct": 0}, {"d": "2026-04-12", "x": 7.0, "y": 196.0, "x_ct": 0}, {"d": "2026-04-19", "x": 14.0, "y": 193.0, "x_ct": 0}, {"d": "2026-04-26", "x": 21.0, "y": 248.0, "x_ct": 4}, {"d": "2026-05-24", "x": 49.0, "y": 248.0, "x_ct": 2}, {"d": "2026-07-05", "x": 91.0, "y": 196.0, "x_ct": 1}, {"d": "2026-07-19", "x": 105.0, "y": 244.0, "x_ct": 0}, {"d": "2026-07-26", "x": 112.0, "y": 250.0, "x_ct": 4}, {"d": "2026-08-02", "x": 119.0, "y": 251.0, "x_ct": 2}, {"d": "2026-08-09", "x": 126.0, "y": 250.0, "x_ct": 2}, {"d": "2026-08-16", "x": 133.0, "y": 246.0, "x_ct": 3}], "slope": 0.2899752588655739, "intercept": 209.78992944194982, "slope_per_month": 8.699257765967218, "mean": 230.27272727272728, "sd": 25.26298046189685, "best": 251, "worst": 193, "first3": 200.0, "last3": 249.0}}, "h2h": [{"d": "2026-04-05", "max": 223.0, "alex": 211.0, "diff": 12.0}, {"d": "2026-04-12", "max": 252.0, "alex": 196.0, "diff": 56.0}, {"d": "2026-04-19", "max": 242.0, "alex": 193.0, "diff": 49.0}, {"d": "2026-04-26", "max": 227.0, "alex": 248.0, "diff": -21.0}, {"d": "2026-07-05", "max": 226.0, "alex": 196.0, "diff": 30.0}, {"d": "2026-07-19", "max": 194.0, "alex": 244.0, "diff": -50.0}, {"d": "2026-07-26", "max": 213.0, "alex": 250.0, "diff": -37.0}, {"d": "2026-08-09", "max": 181.0, "alex": 250.0, "diff": -69.0}, {"d": "2026-08-16", "max": 221.0, "alex": 246.0, "diff": -25.0}], "rolling": {"Maxwell Shepherd": [{"d": "2026-04-05", "y": null}, {"d": "2026-04-12", "y": null}, {"d": "2026-04-19", "y": 239.0}, {"d": "2026-04-26", "y": 240.33333333333334}, {"d": "2026-05-10", "y": 222.66666666666666}, {"d": "2026-06-28", "y": 215.0}, {"d": "2026-07-05", "y": 214.66666666666666}, {"d": "2026-07-19", "y": 213.0}, {"d": "2026-07-26", "y": 211.0}, {"d": "2026-08-09", "y": 196.0}, {"d": "2026-08-16", "y": 205.0}], "Alex Grossman": [{"d": "2026-04-05", "y": null}, {"d": "2026-04-12", "y": null}, {"d": "2026-04-19", "y": 200.0}, {"d": "2026-04-26", "y": 212.33333333333334}, {"d": "2026-05-24", "y": 229.66666666666666}, {"d": "2026-07-05", "y": 230.66666666666666}, {"d": "2026-07-19", "y": 229.33333333333334}, {"d": "2026-07-26", "y": 230.0}, {"d": "2026-08-02", "y": 248.33333333333334}, {"d": "2026-08-09", "y": 250.33333333333334}, {"d": "2026-08-16", "y": 249.0}]}, "spread": {"Maxwell Shepherd": [{"d": "2026-04-05", "y": 2.3}, {"d": "2026-04-12", "y": 2.6}, {"d": "2026-04-19", "y": 2.2}, {"d": "2026-04-26", "y": 3.3}, {"d": "2026-05-10", "y": 2.6}, {"d": "2026-06-28", "y": 3.7}, {"d": "2026-07-05", "y": 3.3}, {"d": "2026-07-19", "y": 3.4}, {"d": "2026-07-26", "y": 3.2}, {"d": "2026-08-09", "y": 4.9}, {"d": "2026-08-16", "y": 3.0}], "Alex Grossman": [{"d": "2026-04-05", "y": 3.1}, {"d": "2026-04-12", "y": 3.6}, {"d": "2026-04-19", "y": 3.2}, {"d": "2026-04-26", "y": 2.0}, {"d": "2026-05-24", "y": 2.2}, {"d": "2026-07-05", "y": 4.1}, {"d": "2026-07-19", "y": 2.0}, {"d": "2026-07-26", "y": 2.1}, {"d": "2026-08-02", "y": 1.8}, {"d": "2026-08-09", "y": 1.5}, {"d": "2026-08-16", "y": 2.5}]}, "dist": {"labels": ["M", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "X"], "series": {"Maxwell Shepherd": [1.82, 0.91, 0.91, 1.21, 2.73, 7.27, 13.03, 20.91, 21.52, 20.91, 5.45, 3.33], "Alex Grossman": [0.0, 0.61, 1.21, 1.82, 1.82, 5.45, 8.79, 19.09, 26.06, 21.82, 7.88, 5.45]}}, "cohort": {"fslr": [225, 266, 212, 277, 247, 219, 262, 260, 224, 189, 289, 218, 274, 263, 191, 124, 270, 201, 239, 159, 284, 284, 239, 255, 217, 242, 178, 197, 269, 286, 225, 210, 192, 264, 264, 241, 266, 240, 246, 238, 169, 257, 195, 267, 211, 222, 224, 233, 152, 222, 248, 141, 266, 131, 248, 223, 258, 145, 234, 206, 279, 264, 237, 228, 278, 117, 225, 257, 217, 279, 232, 105, 185, 218, 234, 257, 268, 187, 276, 233, 248, 172, 128, 172, 71, 214, 234, 253, 234, 121, 242, 215, 219, 67, 264, 237, 205, 232, 245, 227, 261, 245, 142, 272, 250, 235, 248, 242, 210, 230, 134, 249, 252, 275, 268, 107, 237, 213, 255, 245, 215, 88, 251, 233, 119, 262, 165, 258, 235, 248, 238, 227, 270, 72, 249, 265, 244, 252, 213, 266, 216, 264, 240, 258, 259, 270, 243, 243, 261, 275, 225, 275, 211, 267, 246, 223, 191, 253, 259, 217, 196, 237, 256, 252, 248, 270, 206, 193, 187, 158, 229, 253, 242, 210, 227, 220, 248, 264, 199, 263, 271, 245, 174, 237, 210, 245, 129, 259, 233, 277, 248, 252, 260, 210, 120, 219, 221, 142, 227, 248, 252, 196, 251, 226, 241, 244, 194, 229, 264, 244, 213, 250, 252, 251, 269, 263, 240, 181, 250, 136, 249, 253, 245, 225, 193, 245, 246, 221], "all": [268, 252, 225, 266, 260, 260, 272, 298, 300, 212, 237, 277, 235, 82, 247, 219, 180, 262, 192, 260, 111, 252, 224, 189, 289, 218, 145, 300, 250, 221, 227, 222, 300, 221, 226, 242, 154, 195, 274, 258, 276, 272, 263, 191, 218, 124, 219, 133, 270, 238, 201, 231, 160, 239, 169, 245, 295, 300, 272, 223, 238, 220, 239, 241, 159, 271, 284, 284, 276, 275, 239, 280, 255, 273, 217, 260, 242, 178, 289, 199, 286, 300, 167, 197, 269, 297, 286, 246, 224, 226, 243, 289, 271, 188, 228, 201, 218, 117, 291, 275, 247, 201, 259, 210, 225, 210, 175, 210, 226, 286, 192, 264, 264, 272, 294, 193, 228, 275, 263, 241, 266, 300, 256, 295, 277, 146, 240, 232, 246, 238, 263, 169, 257, 195, 200, 225, 200, 255, 258, 225, 192, 267, 205, 266, 211, 204, 210, 201, 222, 204, 224, 233, 152, 237, 222, 248, 220, 236, 216, 242, 141, 266, 131, 274, 96, 46, 248, 258, 216, 173, 211, 260, 223, 258, 253, 269, 207, 255, 210, 140, 220, 145, 190, 236, 255, 265, 208, 234, 279, 283, 40, 206, 92, 279, 264, 300, 293, 271, 284, 205, 181, 267, 237, 228, 269, 287, 281, 234, 263, 293, 267, 294, 296, 62, 201, 269, 192, 204, 259, 217, 44, 278, 243, 117, 225, 288, 257, 217, 157, 208, 215, 279, 119, 291, 241, 300, 213, 243, 232, 105, 205, 258, 258, 281, 194, 185, 218, 234, 187, 257, 278, 246, 281, 264, 148, 263, 26, 268, 238, 183, 187, 269, 160, 271, 276, 233, 94, 284, 135, 183, 148, 254, 115, 277, 248, 248, 200, 250, 172, 265, 128, 172, 71, 214, 266, 184, 234, 253, 234, 212, 121, 216, 272, 242, 260, 277, 274, 103, 299, 221, 262, 259, 233, 239, 213, 260, 251, 272, 275, 292, 277, 299, 217, 215, 199, 155, 198, 219, 67, 264, 237, 207, 205, 232, 245, 227, 248, 274, 286, 276, 290, 218, 252, 270, 300, 284, 266, 261, 245, 293, 201, 163, 142, 162, 275, 272, 250, 183, 220, 235, 248, 242, 261, 200, 241, 210, 298, 230, 289, 181, 215, 134, 249, 252, 274, 275, 287, 265, 294, 270, 268, 107, 192, 183, 254, 264, 243, 227, 237, 219, 278, 265, 262, 232, 242, 198, 272, 275, 214, 255, 285, 298, 69, 295, 213, 213, 255, 245, 237, 215, 265, 253, 297, 292, 157, 266, 258, 88, 291, 251, 271, 298, 294, 259, 259, 223, 196, 193, 128, 233, 230, 286, 243, 290, 288, 212, 119, 205, 83, 262, 165, 223, 258, 235, 141, 225, 248, 238, 219, 227, 270, 72, 230, 222, 178, 249, 265, 244, 252, 213, 214, 266, 226, 201, 222, 216, 264, 240, 258, 259, 150, 225, 270, 224, 243, 243, 227, 261, 187, 275, 225, 275, 211, 267, 189, 229, 246, 205, 223, 216, 191, 253, 259, 217, 223, 196, 221, 237, 204, 256, 252, 255, 248, 162, 106, 226, 270, 206, 193, 187, 158, 229, 195, 253, 242, 226, 210, 227, 160, 220, 234, 224, 248, 264, 186, 199, 263, 271, 169, 185, 245, 174, 199, 237, 210, 245, 129, 259, 233, 225, 233, 244, 277, 248, 252, 260, 210, 120, 219, 221, 142, 217, 207, 227, 211, 244, 248, 252, 196, 251, 226, 241, 244, 194, 229, 264, 244, 209, 156, 56, 234, 213, 250, 226, 252, 251, 230, 269, 240, 263, 236, 229, 240, 222, 181, 250, 246, 202, 136, 249, 253, 239, 245, 130, 225, 193, 245, 246, 221]}, "improvers": [{"name": "Danielle Drinkle", "slope": 19.06, "n": 5}, {"name": "Ryan Orlando", "slope": 10.49, "n": 16}, {"name": "Elizabeth Drinkle", "slope": 9.5, "n": 5}, {"name": "Jeff Barker", "slope": 8.81, "n": 6}, {"name": "Qihuan", "slope": 8.74, "n": 8}, {"name": "Alex Grossman", "slope": 8.7, "n": 11}, {"name": "Kyle Louie", "slope": 8.04, "n": 6}, {"name": "Rishaan Ramaiya", "slope": 3.71, "n": 6}, {"name": "Jay Liu", "slope": 3.41, "n": 7}, {"name": "Brian Skubic", "slope": 3.3, "n": 7}, {"name": "Tom Burlington", "slope": 3.03, "n": 6}, {"name": "Mac", "slope": 1.89, "n": 7}, {"name": "Ryan Carroll", "slope": 1.8, "n": 6}, {"name": "Lydia Weiss", "slope": 1.8, "n": 8}, {"name": "Juan Gonzalez", "slope": 1.75, "n": 9}, {"name": "Jennifer Lam", "slope": 1.67, "n": 8}, {"name": "Zak Simmons", "slope": 1.2, "n": 12}, {"name": "Ling Fang", "slope": 0.9, "n": 21}, {"name": "Weijia Li", "slope": 0.7, "n": 13}, {"name": "Srikrishna Das", "slope": 0.55, "n": 6}, {"name": "Long Ma", "slope": 0.22, "n": 14}, {"name": "Darian Talbot", "slope": 0.14, "n": 6}, {"name": "Qihuan Aixinjueluo", "slope": -0.2, "n": 11}, {"name": "Scott Allen", "slope": -0.2, "n": 14}, {"name": "Val", "slope": -0.23, "n": 7}, {"name": "Gabriel Laigo", "slope": -0.49, "n": 13}, {"name": "David Whitney", "slope": -0.57, "n": 8}, {"name": "Adam Akin", "slope": -0.6, "n": 6}, {"name": "Julia Akin", "slope": -0.65, "n": 6}, {"name": "TZ", "slope": -0.91, "n": 19}, {"name": "Ian David Crickmore", "slope": -1.14, "n": 5}, {"name": "Fred Julian", "slope": -1.15, "n": 10}, {"name": "Jett Yasuda", "slope": -1.37, "n": 7}, {"name": "John Lees", "slope": -1.46, "n": 9}, {"name": "Jordan Bejar", "slope": -1.46, "n": 8}, {"name": "Alice Buswell", "slope": -2.38, "n": 6}, {"name": "Kevin Sprague", "slope": -2.55, "n": 8}, {"name": "Timothy Koh", "slope": -3.33, "n": 6}, {"name": "Joyce", "slope": -5.73, "n": 11}, {"name": "Dave Zenger", "slope": -7.04, "n": 5}, {"name": "Maxwell Shepherd", "slope": -7.29, "n": 11}, {"name": "Maya Kuhns", "slope": -9.86, "n": 5}, {"name": "John Keller", "slope": -10.09, "n": 17}, {"name": "Conor Watters", "slope": -29.69, "n": 5}]};
+
+const MAX='Maxwell Shepherd', ALEX='Alex Grossman';
+const C1='var(--series-1)', C2='var(--series-2)';   // slot1 blue = Maxwell, slot2 orange = Alex
+const COL={[MAX]:C1,[ALEX]:C2};
+const app=document.getElementById('app'), tip=document.getElementById('tip');
+const fmtD=s=>{const [y,m,d]=s.split('-');return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]+' '+(+d);};
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function showTip(html,ev){tip.innerHTML=html;tip.style.opacity=1;
+  const r=tip.getBoundingClientRect();
+  let x=ev.clientX+14, y=ev.clientY-r.height-12;
+  if(x+r.width>innerWidth-8) x=ev.clientX-r.width-14;
+  if(y<8) y=ev.clientY+16;
+  tip.style.left=x+'px'; tip.style.top=y+'px';}
+function hideTip(){tip.style.opacity=0;}
+function tipRow(color,label,val){return `<div class="r"><span class="lhs">${color?`<span class="sw" style="background:${color}"></span>`:''}${esc(label)}</span><b>${esc(val)}</b></div>`;}
+
+
+/* separate two 2-line endpoint labels so they never collide */
+function sep(yA,yB,gap){ if(Math.abs(yA-yB)>=gap) return [yA,yB];
+  const mid=(yA+yB)/2, h=gap/2; return yA<yB?[mid-h,mid+h]:[mid+h,mid-h]; }
+
+function legend(items){return `<div class="legend">${items.map(i=>
+  `<span class="i"><span class="${i.dot?'keydot':'key'}" style="background:${i.c};${i.op?'opacity:'+i.op:''}"></span>${esc(i.l)}</span>`).join('')}</div>`;}
+
+function figure(title,desc,legendItems,svg,note,table){
+  return `<figure><figcaption><div class="t">${esc(title)}</div><div class="d">${desc}</div></figcaption>
+    ${legendItems?legend(legendItems):''}${svg}
+    ${note?`<p class="note">${note}</p>`:''}
+    ${table?`<details class="tbl"><summary>Show data table</summary>${table}</details>`:''}</figure>`;
+}
+
+/* ---------- 1. HERO: score per event with trend ---------- */
+function chartScores(){
+  const W=940,H=400,P={t:18,r:120,b:44,l:48};
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const all=[...DATA.series[MAX].points,...DATA.series[ALEX].points];
+  const xs=all.map(p=>p.x), y0=160, y1=270;
+  const xmin=Math.min(...xs), xmax=Math.max(...xs);
+  const X=x=>P.l+(x-xmin)/(xmax-xmin)*iw, Y=y=>P.t+(1-(y-y0)/(y1-y0))*ih;
+  let s='';
+  // grid
+  for(let y=y0;y<=y1;y+=20){ s+=`<line x1="${P.l}" y1="${Y(y)}" x2="${P.l+iw}" y2="${Y(y)}" stroke="var(--grid)" stroke-width="1"/>
+    <text class="ax" x="${P.l-10}" y="${Y(y)+4}" text-anchor="end">${y}</text>`; }
+  // x ticks (month starts)
+  const months=[['2026-04-05','Apr'],['2026-05-10','May'],['2026-06-28','Jun/Jul'],['2026-08-02','Aug']];
+  const byDate={}; all.forEach(p=>byDate[p.d]=p.x);
+  months.forEach(([d,l])=>{ if(byDate[d]!==undefined) s+=`<text class="ax" x="${X(byDate[d])}" y="${P.t+ih+22}" text-anchor="middle">${l}</text>`;});
+  s+=`<line x1="${P.l}" y1="${P.t+ih}" x2="${P.l+iw}" y2="${P.t+ih}" stroke="var(--grid)" stroke-width="1"/>`;
+  // trend lines first (recessive)
+  [MAX,ALEX].forEach(n=>{ const S=DATA.series[n];
+    const ya=S.slope*xmin+S.intercept, yb=S.slope*xmax+S.intercept;
+    s+=`<line x1="${X(xmin)}" y1="${Y(ya)}" x2="${X(xmax)}" y2="${Y(yb)}" stroke="${COL[n]}" stroke-width="2" opacity="0.3" stroke-linecap="round"/>`;});
+  // data lines
+  [MAX,ALEX].forEach(n=>{ const pts=DATA.series[n].points;
+    s+=`<path d="${pts.map((p,i)=>(i?'L':'M')+X(p.x)+' '+Y(p.y)).join(' ')}" fill="none" stroke="${COL[n]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;});
+  // dots
+  [MAX,ALEX].forEach(n=>{ DATA.series[n].points.forEach(p=>{
+    s+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="4.5" fill="${COL[n]}" stroke="var(--surface-1)" stroke-width="2"/>`;});});
+  // endpoint direct labels
+  { const pm=DATA.series[MAX].points, pa=DATA.series[ALEX].points;
+    const m=pm[pm.length-1], a=pa[pa.length-1];
+    const [ym,ya]=sep(Y(m.y),Y(a.y),36);
+    [[MAX,m,ym],[ALEX,a,ya]].forEach(([n,p,yy])=>{
+      s+=`<circle cx="${X(p.x)+16}" cy="${yy-4}" r="4" fill="${COL[n]}"/>
+        <text class="axlab" x="${X(p.x)+26}" y="${yy-9}" fill="var(--text-primary)" style="font-weight:640">${n.split(' ')[0]}</text>
+        <text class="axlab" x="${X(p.x)+26}" y="${yy+7}">${p.y} · last round</text>`;}); }
+  // trend annotations
+  const sm=DATA.series[MAX], sa=DATA.series[ALEX];
+  s+=`<text class="axlab" x="${X(xmin)+10}" y="${Y(sm.slope*xmin+sm.intercept)-10}" fill="var(--text-secondary)">${sm.slope_per_month.toFixed(1)} pts/month</text>`;
+  s+=`<text class="axlab" x="${X(xmin)+10}" y="${Y(sa.slope*xmin+sa.intercept)+20}" fill="var(--text-secondary)">+${sa.slope_per_month.toFixed(1)} pts/month</text>`;
+  // hover columns
+  const dates=[...new Set(all.map(p=>p.d))].sort();
+  dates.forEach(d=>{ const x=X(byDate[d]);
+    const mp=DATA.series[MAX].points.find(p=>p.d===d), ap=DATA.series[ALEX].points.find(p=>p.d===d);
+    const html=`<div class="th">${fmtD(d)} 2026</div>`+
+      (mp?tipRow(C1,'Maxwell',mp.y+'  ('+mp.x_ct+'X)'):'')+(ap?tipRow(C2,'Alex',ap.y+'  ('+ap.x_ct+'X)'):'')+
+      ((mp&&ap)?tipRow('','margin',(mp.y-ap.y>0?'+':'')+(mp.y-ap.y)):'');
+    s+=`<rect x="${x-14}" y="${P.t}" width="28" height="${ih}" fill="transparent" data-tip="${esc(html).replace(/"/g,'&quot;')}"/>`;});
+  s+=`<text class="axlab" x="${-(P.t+ih/2)}" y="14" transform="rotate(-90)" text-anchor="middle">Score / 300</text>`;
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vegas 300 scores over time for Maxwell Shepherd and Alex Grossman">${s}</svg>`;
+  // table
+  let rows=dates.map(d=>{const mp=DATA.series[MAX].points.find(p=>p.d===d),ap=DATA.series[ALEX].points.find(p=>p.d===d);
+    return `<tr><td>${fmtD(d)}</td><td class="hl">${mp?mp.y:'—'}</td><td>${mp?mp.x_ct:'—'}</td><td class="hl">${ap?ap.y:'—'}</td><td>${ap?ap.x_ct:'—'}</td></tr>`;}).join('');
+  const table=`<table><thead><tr><th>Date</th><th>Maxwell</th><th>X</th><th>Alex</th><th>X</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return figure('Every scored round, April → August 2026',
+    'Each dot is one 30-arrow Vegas round. Faint straight lines are least-squares trends.',
+    [{c:C1,l:'Maxwell Shepherd'},{c:C2,l:'Alex Grossman'},{c:'var(--text-muted)',l:'faded line = fitted trend',op:.4}],
+    svg,
+    'The two trends cross in <b>late June</b>. Both slopes are significant at p&nbsp;&asymp;&nbsp;0.05 (Maxwell R²&nbsp;0.36, Alex R²&nbsp;0.37).',
+    table);
+}
+
+/* ---------- 2. ROLLING FORM ---------- */
+function chartRolling(){
+  const W=940,H=300,P={t:16,r:112,b:40,l:48}, iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const ser={}; [MAX,ALEX].forEach(n=>ser[n]=DATA.rolling[n].filter(p=>p.y!==null));
+  const dates=[...new Set([...DATA.rolling[MAX],...DATA.rolling[ALEX]].map(p=>p.d))].sort();
+  const xi=d=>dates.indexOf(d);
+  const y0=180,y1=260;
+  const X=i=>P.l+i/(dates.length-1)*iw, Y=y=>P.t+(1-(y-y0)/(y1-y0))*ih;
+  let s='';
+  for(let y=y0;y<=y1;y+=20) s+=`<line x1="${P.l}" y1="${Y(y)}" x2="${P.l+iw}" y2="${Y(y)}" stroke="var(--grid)" stroke-width="1"/><text class="ax" x="${P.l-10}" y="${Y(y)+4}" text-anchor="end">${y}</text>`;
+  s+=`<line x1="${P.l}" y1="${P.t+ih}" x2="${P.l+iw}" y2="${P.t+ih}" stroke="var(--grid)" stroke-width="1"/>`;
+  dates.forEach((d,i)=>{ if(i%2===0) s+=`<text class="ax" x="${X(i)}" y="${P.t+ih+22}" text-anchor="middle">${fmtD(d)}</text>`;});
+  [MAX,ALEX].forEach(n=>{ const p=ser[n];
+    s+=`<path d="${p.map((q,i)=>(i?'L':'M')+X(xi(q.d))+' '+Y(q.y)).join(' ')}" fill="none" stroke="${COL[n]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    p.forEach(q=>s+=`<circle cx="${X(xi(q.d))}" cy="${Y(q.y)}" r="4.5" fill="${COL[n]}" stroke="var(--surface-1)" stroke-width="2"/>`);});
+  { const lm=ser[MAX][ser[MAX].length-1], la=ser[ALEX][ser[ALEX].length-1];
+    const [ym,ya]=sep(Y(lm.y),Y(la.y),36);
+    [[MAX,lm,ym],[ALEX,la,ya]].forEach(([n,last,yy])=>{
+      s+=`<circle cx="${X(xi(last.d))+16}" cy="${yy-4}" r="4" fill="${COL[n]}"/>
+        <text class="axlab" x="${X(xi(last.d))+26}" y="${yy-9}" fill="var(--text-primary)" style="font-weight:640">${n.split(' ')[0]}</text>
+        <text class="axlab" x="${X(xi(last.d))+26}" y="${yy+7}">${last.y.toFixed(1)}</text>`;}); }
+  dates.forEach((d,i)=>{ const m=ser[MAX].find(p=>p.d===d), a=ser[ALEX].find(p=>p.d===d);
+    if(!m&&!a) return;
+    const html=`<div class="th">3-round avg to ${fmtD(d)}</div>`+(m?tipRow(C1,'Maxwell',m.y.toFixed(1)):'')+(a?tipRow(C2,'Alex',a.y.toFixed(1)):'');
+    s+=`<rect x="${X(i)-16}" y="${P.t}" width="32" height="${ih}" fill="transparent" data-tip="${esc(html).replace(/"/g,'&quot;')}"/>`;});
+  s+=`<text class="axlab" x="${-(P.t+ih/2)}" y="14" transform="rotate(-90)" text-anchor="middle">3-round avg</text>`;
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Rolling three-round average">${s}</svg>`;
+  let rows=dates.map(d=>{const m=ser[MAX].find(p=>p.d===d),a=ser[ALEX].find(p=>p.d===d);
+    return `<tr><td>${fmtD(d)}</td><td class="hl">${m?m.y.toFixed(1):'—'}</td><td class="hl">${a?a.y.toFixed(1):'—'}</td></tr>`;}).join('');
+  return figure('Rolling 3-round form','Smooths out single bad days. Lines cross in early July.',
+    [{c:C1,l:'Maxwell Shepherd'},{c:C2,l:'Alex Grossman'}], svg,
+    'Maxwell peaks at <b>240.3</b> (26 Apr) and bottoms at <b>196.0</b> (9 Aug). Alex climbs almost monotonically from <b>200.0</b> to <b>250.3</b>.',
+    `<table><thead><tr><th>Through</th><th>Maxwell</th><th>Alex</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+/* ---------- 3. HEAD TO HEAD MARGIN ---------- */
+function chartH2H(){
+  const d=DATA.h2h, W=940,H=300,P={t:26,r:24,b:52,l:56}, iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const M=80, band=iw/d.length, bw=Math.min(24,band-14);
+  const X=i=>P.l+band*i+band/2, Y=v=>P.t+ih/2-(v/M)*(ih/2);
+  let s='';
+  for(let v=-80;v<=80;v+=40) s+=`<line x1="${P.l}" y1="${Y(v)}" x2="${P.l+iw}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/><text class="ax" x="${P.l-10}" y="${Y(v)+4}" text-anchor="end">${v>0?'+':''}${v}</text>`;
+  s+=`<line x1="${P.l}" y1="${Y(0)}" x2="${P.l+iw}" y2="${Y(0)}" stroke="var(--text-muted)" stroke-width="1"/>`;
+  d.forEach((r,i)=>{
+    const up=r.diff>0, c=up?C1:C2, h=Math.abs(Y(r.diff)-Y(0));
+    const y=up?Y(r.diff):Y(0)+1;   // 2px surface gap at the zero line
+    const hh=Math.max(h-1,1);
+    // rounded data-end away from baseline, square at baseline
+    const rr=4;
+    const path = up
+      ? `M${X(i)-bw/2} ${y+hh} L${X(i)-bw/2} ${y+rr} Q${X(i)-bw/2} ${y} ${X(i)-bw/2+rr} ${y} L${X(i)+bw/2-rr} ${y} Q${X(i)+bw/2} ${y} ${X(i)+bw/2} ${y+rr} L${X(i)+bw/2} ${y+hh} Z`
+      : `M${X(i)-bw/2} ${y} L${X(i)-bw/2} ${y+hh-rr} Q${X(i)-bw/2} ${y+hh} ${X(i)-bw/2+rr} ${y+hh} L${X(i)+bw/2-rr} ${y+hh} Q${X(i)+bw/2} ${y+hh} ${X(i)+bw/2} ${y+hh-rr} L${X(i)+bw/2} ${y} Z`;
+    const html=`<div class="th">${fmtD(r.d)} 2026</div>${tipRow(C1,'Maxwell',r.max)}${tipRow(C2,'Alex',r.alex)}${tipRow('','margin',(r.diff>0?'+':'')+r.diff)}`;
+    s+=`<path d="${path}" fill="${c}" data-tip="${esc(html).replace(/"/g,'&quot;')}"/>`;
+    s+=`<text class="axlab" x="${X(i)}" y="${up?Y(r.diff)-8:Y(r.diff)+16}" text-anchor="middle" fill="var(--text-primary)" style="font-weight:600">${r.diff>0?'+':''}${r.diff}</text>`;
+    s+=`<text class="ax" x="${X(i)}" y="${P.t+ih+22}" text-anchor="middle">${fmtD(r.d)}</text>`;});
+  s+=`<text class="axlab" x="${P.l+4}" y="${P.t-8}">Maxwell ahead &#9650;</text>`;
+  s+=`<text class="axlab" x="${P.l+4}" y="${P.t+ih+44}">Alex ahead &#9660;</text>`;
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Head to head margin per shared event">${s}</svg>`;
+  const rows=d.map(r=>`<tr><td>${fmtD(r.d)}</td><td class="hl">${r.max}</td><td class="hl">${r.alex}</td><td>${r.diff>0?'+':''}${r.diff}</td></tr>`).join('');
+  return figure('Head-to-head margin, 9 shared events','Bar height = Maxwell&rsquo;s score minus Alex&rsquo;s on the same day, same round, same conditions.',
+    [{c:C1,l:'Maxwell ahead'},{c:C2,l:'Alex ahead'}], svg,
+    'Maxwell won the first three meetings by an average of <b>+39</b>; Alex has won <b>4 of the last 5</b> by an average of <b>45</b>. Season record 4&ndash;5. Across all 9, the paired difference is <b>not</b> significant (p&nbsp;=&nbsp;0.69) &mdash; the reversal, not the average, is the story.',
+    `<table><thead><tr><th>Date</th><th>Maxwell</th><th>Alex</th><th>Margin</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+/* ---------- 4. WITHIN-END SPREAD (consistency) ---------- */
+function chartSpread(){
+  const W=940,H=290,P={t:16,r:112,b:40,l:52}, iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const dates=[...new Set([...DATA.spread[MAX],...DATA.spread[ALEX]].map(p=>p.d))].sort();
+  const xi=d=>dates.indexOf(d);
+  const y0=1,y1=5, X=i=>P.l+i/(dates.length-1)*iw, Y=y=>P.t+(1-(y-y0)/(y1-y0))*ih;
+  let s='';
+  for(let y=1;y<=5;y+=1) s+=`<line x1="${P.l}" y1="${Y(y)}" x2="${P.l+iw}" y2="${Y(y)}" stroke="var(--grid)" stroke-width="1"/><text class="ax" x="${P.l-10}" y="${Y(y)+4}" text-anchor="end">${y}</text>`;
+  s+=`<line x1="${P.l}" y1="${P.t+ih}" x2="${P.l+iw}" y2="${P.t+ih}" stroke="var(--grid)" stroke-width="1"/>`;
+  dates.forEach((d,i)=>{ if(i%2===0) s+=`<text class="ax" x="${X(i)}" y="${P.t+ih+22}" text-anchor="middle">${fmtD(d)}</text>`;});
+  [MAX,ALEX].forEach(n=>{ const p=DATA.spread[n];
+    s+=`<path d="${p.map((q,i)=>(i?'L':'M')+X(xi(q.d))+' '+Y(q.y)).join(' ')}" fill="none" stroke="${COL[n]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    p.forEach(q=>s+=`<circle cx="${X(xi(q.d))}" cy="${Y(q.y)}" r="4.5" fill="${COL[n]}" stroke="var(--surface-1)" stroke-width="2"/>`);});
+  { const lm=DATA.spread[MAX][DATA.spread[MAX].length-1], la=DATA.spread[ALEX][DATA.spread[ALEX].length-1];
+    const [ym,ya]=sep(Y(lm.y),Y(la.y),36);
+    [[MAX,lm,ym],[ALEX,la,ya]].forEach(([n,last,yy])=>{
+      s+=`<circle cx="${X(xi(last.d))+16}" cy="${yy-4}" r="4" fill="${COL[n]}"/>
+        <text class="axlab" x="${X(xi(last.d))+26}" y="${yy-9}" fill="var(--text-primary)" style="font-weight:640">${n.split(' ')[0]}</text>
+        <text class="axlab" x="${X(xi(last.d))+26}" y="${yy+7}">${last.y.toFixed(1)} pts</text>`;}); }
+  dates.forEach((d,i)=>{ const m=DATA.spread[MAX].find(p=>p.d===d), a=DATA.spread[ALEX].find(p=>p.d===d);
+    if(!m&&!a) return;
+    const html=`<div class="th">${fmtD(d)} 2026</div>`+(m?tipRow(C1,'Maxwell',m.y.toFixed(2)+' pts'):'')+(a?tipRow(C2,'Alex',a.y.toFixed(2)+' pts'):'');
+    s+=`<rect x="${X(i)-16}" y="${P.t}" width="32" height="${ih}" fill="transparent" data-tip="${esc(html).replace(/"/g,'&quot;')}"/>`;});
+  s+=`<text class="axlab" x="${-(P.t+ih/2)}" y="14" transform="rotate(-90)" text-anchor="middle">Avg spread (pts)</text>`;
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Within-end arrow spread over time">${s}</svg>`;
+  const rows=dates.map(d=>{const m=DATA.spread[MAX].find(p=>p.d===d),a=DATA.spread[ALEX].find(p=>p.d===d);
+    return `<tr><td>${fmtD(d)}</td><td class="hl">${m?m.y.toFixed(2):'—'}</td><td class="hl">${a?a.y.toFixed(2):'—'}</td></tr>`;}).join('');
+  return figure('Group consistency — average spread within an end (lower is better)',
+    'Best arrow minus worst arrow, averaged over the 10 ends of each round. A proxy for group size, independent of where the group is centred.',
+    [{c:C1,l:'Maxwell Shepherd'},{c:C2,l:'Alex Grossman'}], svg,
+    'Alex&rsquo;s groups tighten from <b>3.1</b> to <b>1.5&ndash;2.5</b> points; Maxwell&rsquo;s loosen from <b>2.3</b> to <b>3.0&ndash;4.9</b>. Season means: Alex <b>2.55</b>, Maxwell <b>3.14</b>. This is the mechanism behind the score curves &mdash; the scores follow the groups.',
+    `<table><thead><tr><th>Date</th><th>Maxwell</th><th>Alex</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+/* ---------- 5. ARROW VALUE DISTRIBUTION ---------- */
+function chartDist(){
+  const L=DATA.dist.labels, W=940,H=300,P={t:18,r:24,b:52,l:48}, iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const mx=30, band=iw/L.length, bw=Math.min(18,(band-8)/2-1);
+  const X=i=>P.l+band*i+band/2, Y=v=>P.t+ih-(v/mx)*ih;
+  let s='';
+  for(let v=0;v<=30;v+=10) s+=`<line x1="${P.l}" y1="${Y(v)}" x2="${P.l+iw}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/><text class="ax" x="${P.l-10}" y="${Y(v)+4}" text-anchor="end">${v}%</text>`;
+  s+=`<line x1="${P.l}" y1="${Y(0)}" x2="${P.l+iw}" y2="${Y(0)}" stroke="var(--grid)" stroke-width="1"/>`;
+  const rr=4;
+  L.forEach((lab,i)=>{
+    [[MAX,-1],[ALEX,1]].forEach(([n,side])=>{
+      const v=DATA.dist.series[n][i]; if(v<=0){return;}
+      const h=Math.max((v/mx)*ih,1.5), x=X(i)+side*(bw/2+1), x0=x-bw/2, y=Y(v);
+      const path=`M${x0} ${Y(0)} L${x0} ${y+rr} Q${x0} ${y} ${x0+rr} ${y} L${x0+bw-rr} ${y} Q${x0+bw} ${y} ${x0+bw} ${y+rr} L${x0+bw} ${Y(0)} Z`;
+      const html=`<div class="th">Arrow value: ${lab}</div>${tipRow(COL[n],n.split(' ')[0],v.toFixed(1)+'% of arrows')}`;
+      s+=`<path d="${path}" fill="${COL[n]}" data-tip="${esc(html).replace(/"/g,'&quot;')}"/>`;});
+    s+=`<text class="ax" x="${X(i)}" y="${Y(0)+22}" text-anchor="middle">${lab}</text>`;});
+  s+=`<text class="axlab" x="${P.l+iw/2}" y="${Y(0)+44}" text-anchor="middle">Arrow value (M = miss, X = inner 10)</text>`;
+  s+=`<text class="axlab" x="${-(P.t+ih/2)}" y="14" transform="rotate(-90)" text-anchor="middle">% of arrows</text>`;
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Distribution of arrow values">${s}</svg>`;
+  const rows=L.map((lab,i)=>`<tr><td>${lab}</td><td class="hl">${DATA.dist.series[MAX][i].toFixed(1)}%</td><td class="hl">${DATA.dist.series[ALEX][i].toFixed(1)}%</td></tr>`).join('');
+  return figure('Where every arrow landed — 330 arrows each',
+    'The full season, arrow by arrow. Same class, same round, same targets.',
+    [{c:C1,l:'Maxwell Shepherd'},{c:C2,l:'Alex Grossman'}], svg,
+    'Alex hits the <b>X-ring 5.5%</b> of the time vs Maxwell&rsquo;s <b>3.3%</b>, and the 8-or-better band <b>61.3%</b> vs <b>51.2%</b>. Maxwell has <b>6 misses</b>; Alex has <b>none</b>. Alex&rsquo;s edge is not one big shot &mdash; it is the whole distribution shifted right.',
+    `<table><thead><tr><th>Value</th><th>Maxwell</th><th>Alex</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+/* ---------- TILES ---------- */
+function tiles(){
+  const m=DATA.series[MAX], a=DATA.series[ALEX];
+  const t=(dot,k,v,n)=>`<div class="tile"><div class="k">${dot?`<span class="dot" style="background:${dot}"></span>`:''}${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`;
+  return `<div class="tiles">
+    ${t(C1,'Maxwell — trend','−7.3','pts/month · 239 → 205 avg')}
+    ${t(C2,'Alex — trend','+8.7','pts/month · 200 → 249 avg')}
+    ${t('','Head-to-head','4–5','Maxwell won first 3, Alex won 4 of last 5')}
+    ${t('','Season best','252 / 251','Maxwell 12 Apr · Alex 2 Aug')}
+  </div>`;
+}
+
+app.innerHTML = tiles()
+  + `<h2 class="sec">The season</h2>` + chartScores() + chartRolling() + chartH2H()
+  + `<h2 class="sec">Why</h2>` + chartSpread() + chartDist();
+
+/* ---------- hover wiring ---------- */
+document.addEventListener('mousemove', e=>{
+  const el=e.target.closest('[data-tip]');
+  if(el) showTip(el.getAttribute('data-tip'), e); else hideTip();
+});
+document.addEventListener('mouseleave', hideTip);
+</script>
+</body>
+</html>
