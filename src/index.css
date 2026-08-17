@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* The standalone /archery/ page ships its own CSS and is not a Tailwind
+   consumer. Exclude it from automatic source detection so its markup cannot
+   add unused utilities to this stylesheet. */
+@source not "../public/archery";
+
 @font-face {
   font-family: "XCharter";
   src: url("/fonts/XCharter-Roman.woff2") format("woff2");
