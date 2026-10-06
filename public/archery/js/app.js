@@ -222,7 +222,7 @@ function inferno(t) {
 }
 
 // ----------------------------------------------------------------------------- display
-const RING_FILL = { 10: '#f5d33f', 9: '#f5d33f', 8: '#e0453a', 7: '#e0453a', 6: '#3d8bd6', 5: '#3d8bd6', 4: '#222', 3: '#222', 2: '#f0f0f0', 1: '#f0f0f0', 0: '#777' };
+const RING_FILL = { 10: '#f5d33f', 9: '#f5d33f', 8: '#e0453a', 7: '#e0453a', 6: '#3d8bd6', 5: '#3d8bd6', 4: '#222222', 3: '#222222', 2: '#f0f0f0', 1: '#f0f0f0', 0: '#777777' }; // 6-digit: drawn with an alpha suffix
 
 function visibleArrows() { return state.arrows.filter((a) => a.manual || (!a.removed && a.conf >= state.thr)); }
 
@@ -332,7 +332,7 @@ function updateStats() {
   const counts = cats.map((c) => arr.filter((a) => (c === 'X' ? a.x : c === 'M' ? a.score === 0 : a.score === c && !a.x)).length);
   const mx = Math.max(1, ...counts);
   $('hist').innerHTML = cats.map((c, i) => {
-    const col = c === 'X' ? '#fff2a8' : c === 'M' ? '#777' : RING_FILL[c] === '#222' ? '#555' : RING_FILL[c];
+    const col = c === 'X' ? '#fff2a8' : c === 'M' ? '#777' : RING_FILL[c] === '#222222' ? '#555' : RING_FILL[c];
     return `<div class="bar"><b>${counts[i] || ''}</b><i style="height:${(counts[i] / mx) * 62}px;background:${col}"></i>${c}</div>`;
   }).join('');
   drawGroup(arr);
