@@ -458,6 +458,54 @@ function zoomAt([x, y], f, dx = 0, dy = 0) {
   v.tx = x - (x - v.tx) * f + dx; v.ty = y - (y - v.ty) * f + dy; v.s *= f;
 }
 
+// ----------------------------------------------------------------------------- paste
+// Ctrl/⌘+V anywhere on the page, or the Paste buttons (async Clipboard API: needed on phones,
+// where there is no paste shortcut). Text pastes (e.g. into the diameter box) pass through.
+function pastedName(type) {
+  const ext = (type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+  return `pasted_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.${ext}`;
+}
+
+function runPasted(blob) {
+  if (!$('busy').classList.contains('hidden')) return toast('Still scoring the last photo…');
+  run(blob, pastedName(blob.type));
+}
+
+let toastTimer = 0;
+function toast(text) {
+  const t = $('toast');
+  t.textContent = text; t.classList.remove('hidden');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+const NO_IMAGE = 'No image on the clipboard. Copy the image itself (right-click → Copy image), not a link or file name.';
+
+function setupPaste() {
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  $('paste-key').textContent = mac ? '⌘V' : 'Ctrl+V';
+  document.addEventListener('paste', (e) => {
+    const items = [...(e.clipboardData?.items || [])];
+    const item = items.find((it) => it.kind === 'file' && it.type.startsWith('image/'));
+    if (item) { e.preventDefault(); runPasted(item.getAsFile()); return; }
+    const inField = e.target.closest?.('input, textarea, [contenteditable]');
+    if (!inField && items.length) toast(NO_IMAGE);
+  });
+  const buttons = document.querySelectorAll('.paste-btn');
+  if (!navigator.clipboard?.read) { buttons.forEach((b) => b.classList.add('hidden')); return; }
+  const pasteFromClipboard = async () => {
+    try {
+      for (const it of await navigator.clipboard.read()) {
+        const type = it.types.find((t) => t.startsWith('image/'));
+        if (type) return runPasted(await it.getType(type));
+      }
+      toast(NO_IMAGE);
+    } catch (e) {
+      toast(e.name === 'NotAllowedError' ? `Clipboard access was blocked. Press ${$('paste-key').textContent} instead.` : NO_IMAGE);
+    }
+  };
+  buttons.forEach((b) => b.addEventListener('click', pasteFromClipboard));
+}
+
 function download(name, text, type) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type }));
@@ -472,6 +520,7 @@ function setupControls() {
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) run(f, f.name); });
+  setupPaste();
   $('mode').addEventListener('click', (e) => {
     const m = e.target.dataset.mode; if (!m) return;
     state.mode = m;
