@@ -1,0 +1,39 @@
+{
+ "detector": "detector.onnx",
+ "locator": "locator.onnx",
+ "canon_size": 1024,
+ "extent_mm": 200.0,
+ "locator_input": 512,
+ "threshold": 0.3,
+ "detector_args": {
+  "fold": -1,
+  "encoder": "tf_efficientnet_lite0",
+  "width": 32,
+  "iters": 6000,
+  "bs": 8,
+  "crop": 512,
+  "lr": 0.0015,
+  "sigma": 2.0,
+  "off_w": 1.0,
+  "eval_every": 1000,
+  "split": "v1",
+  "out": "runs/det_lite0_all",
+  "seed": 0,
+  "workers": 6
+ },
+ "locator_args": {
+  "fold": -1,
+  "encoder": "efficientnet_b0",
+  "width": 48,
+  "iters": 8000,
+  "bs": 12,
+  "lr": 0.0015,
+  "eval_every": 2000,
+  "split": "v1",
+  "out": "runs/loc_b0_all",
+  "seed": 0,
+  "workers": 4,
+  "throttle_ms": 60.0
+ },
+ "detector_int8": "detector_int8.onnx"
+}
