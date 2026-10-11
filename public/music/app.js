@@ -82,7 +82,7 @@ class Player {
   shift(dt) {
     this.base += dt;
     for (const e of this.queue) { if (e.t !== undefined) e.t += dt; if (e.t0 !== undefined) { e.t0 += dt; e.t1 += dt; } }
-    for (const info of this.infos) { info.t0 += dt; info.t1 += dt; for (const c of info.chords) c.t += dt; }
+    for (const info of this.infos) { info.t0 += dt; info.t1 += dt; for (const c of info.chords) c.t += dt; for (const l of info.layers) { l.enter += dt; l.exit += dt; } }
     for (const d of this.decQ) d.t += dt;
   }
   tick() {
@@ -103,7 +103,7 @@ class Player {
         if (e.t0 !== undefined) { e.t0 += this.base; e.t1 += this.base; }
         this.queue.push(e);
       }
-      info.t0 += this.base; info.t1 += this.base; for (const c of info.chords) c.t += this.base;
+      info.t0 += this.base; info.t1 += this.base; for (const c of info.chords) c.t += this.base; for (const l of info.layers) { l.enter += this.base; l.exit += this.base; }
       this.infos.push(info);
       for (const d of decisions) { d.t += this.base; this.decQ.push(d); }
       this.queue.sort((a, b) => dispatchAt(a) - dispatchAt(b));
@@ -188,6 +188,11 @@ function describe(d) {
   if (L === 'Motif contour') return [`shaped as ${w === 'arch' ? 'an arch' : w === 'valley' ? 'a valley' : w}`, 14];
   if (L === 'Next section') return [`New section: ${w}, ${SECTION_TEXT[w] || ''}`, 90];
   if (L === 'Section length') return [`lasting ${w}`, 30];
+  if (L === 'Phrase plan') return [`in phrases of ${w}`, 29];
+  if (L === 'Melody pickup') return [w.startsWith('the tune') ? '' : `the tune begins with ${w}`, 24];
+  if (L === 'Brass on the strong bars') return [w === 'accented chords' ? 'brass accents on the strong bars' : '', 23];
+  if (L === 'Cadence pace') return [w.startsWith('a quicker') ? 'a quicker turn into the cadence' : '', 34];
+  if (L === 'Texture') return [w.startsWith('one figure') ? 'One figure thins to its accents' : '', 46];
   if (L === 'Harmonic rhythm') return [w === 'chord per bar' ? 'a new chord every bar' : `a new chord every ${w.split(' ')[0]} bars`, 25];
   if (L === 'Accent pattern') return [`accents grouped ${w}`, 22];
   if (L === 'Shadow colour') return [w.startsWith('darken') ? 'the scale darkens to Phrygian' : 'the scale stays the same', 40];
@@ -207,6 +212,7 @@ function describe(d) {
   if (L === 'Motif mutation') return [w.startsWith('mutate') ? 'the tune will change slightly' : '', 12];
   if (L === 'Mutation') return [`The tune changes: ${w}`, 50];
   if (L.endsWith('how it shares the tune')) return [`${capw(L.split(':')[0])} ${w}`, 36];
+  if (L.endsWith(': entrance')) return [w === 'on the downbeat' ? 'entering on the downbeat' : w.startsWith('in bar') ? `entering ${w}` : 'entering as a pickup into the next phrase', 13];
   if (L.startsWith('Just before the arrival')) return [w.startsWith('a moment') ? 'A moment of silence before the arrival' : 'No pause before the arrival', 65];
   if (L === 'End of the arrival') return [w.startsWith('a hard') ? 'The orchestra stops dead' : 'The climax rings on', 65];
   if ((m = L.match(/^(.*): (subdivision|cell shape|process|accents|contrasting accents|cycle length)$/))) {
@@ -226,7 +232,7 @@ let shownCount = 0, streamStart = 0;
 function showCard(group) {
   shownCount += group.length;
   $('count').textContent = `${shownCount.toLocaleString()} choices made`;
-  const items = group.map((d) => { const [text, pri] = describe(d); return { d, text, pri, who: (d.label.match(/^(.*): (subdivision|cell shape|process|accents|contrasting accents|cycle length)$/) || [])[1] }; }).filter((x) => x.text);
+  const items = group.map((d) => { const [text, pri] = describe(d); return { d, text, pri, who: (d.label.match(/^(.*): (subdivision|cell shape|process|accents|contrasting accents|cycle length|entrance)$/) || [])[1] }; }).filter((x) => x.text);
   if (!items.length) return;
   const cards = items.filter((x) => x.pri >= 45).sort((a, b) => b.pri - a.pri).map((x) => ({ lead: x, extra: [] }));
   const find = (pred) => cards.find((c) => pred(c.lead));
@@ -234,7 +240,7 @@ function showCard(group) {
     let home = null;
     if (x.who) home = find((l) => l.d.level === 'layer' && l.text.toLowerCase().startsWith(x.who.toLowerCase()));
     else if (x.d.level === 'piece' || x.d.level === 'motif' && /^Motif/.test(x.d.label)) home = find((l) => l.d.level === 'piece');
-    if (!home && !x.who && ['section', 'harmony', 'pattern'].includes(x.d.level) && !/chord/.test(x.d.label)) home = find((l) => l.d.label === 'Next section');
+    if (!home && !x.who && (['section', 'harmony', 'pattern'].includes(x.d.level) || x.d.label === 'Melody pickup') && !/chord/.test(x.d.label)) home = find((l) => l.d.label === 'Next section');
     if (!home && x.d.level === 'harmony' && !/chord/.test(x.d.label)) home = find((l) => l.d.level === 'harmony');
     if (!home && x.d.level === 'motif') home = find((l) => l.d.level === 'motif');
     if (home) { home.extra.push(x.who && x.d.label.endsWith('subdivision') ? x.text.replace(x.who + ' ', '') : x.text); home.group = (home.group || [home.lead.d]).concat([x.d]); }
@@ -276,7 +282,7 @@ function updateNow(p) {
   if (!info) return;
   $('piece').textContent = `No. ${info.piece} · ${info.key} ${cap(info.mode)} · ${info.meter} · ${info.bpm} bpm · ${info.palette}`;
   $('section').textContent = cap(info.section);
-  $('secprog').textContent = `phrase at bar ${info.sectionBar + 1} of ${info.sectionBars}`;
+  $('secprog').textContent = `bar ${info.sectionBar + 1} of ${info.sectionBars} · phrase ${info.phrase + 1} of ${info.plan.length}${info.kind === 'ante' ? ', a question' : info.kind === 'cons' ? ', its answer' : ''}`;
   let ch = info.chords[0];
   for (const c of info.chords) if (c.t <= now) ch = c;
   $('chord').textContent = ch ? ch.name : '-';
@@ -288,12 +294,13 @@ function updateNow(p) {
   if (!formTrail.length) formTrail.push(info.section);
   $('form').innerHTML = formTrail.map((s, i) => `<span class="${i === formTrail.length - 1 ? 'on' : ''}">${cap(s)}</span>`).join('') + '<span class="next">?</span>';
   // orchestra map
-  const key = info.layers.map((l) => l.role + ':' + l.track + (loadingTrack(p, l.track) ? '*' : '')).join('|');
+  const heard = info.layers.filter((l) => now >= l.enter - 0.05 && now < l.exit);
+  const key = heard.map((l) => l.role + ':' + l.track + (loadingTrack(p, l.track) ? '*' : '')).join('|');
   if (key !== chipKey) {
     const prev = new Set(chipKey.split('|'));
     chipKey = key;
     const byRole = {};
-    for (const l of info.layers) (byRole[l.role] = byRole[l.role] || []).push(l);
+    for (const l of heard) (byRole[l.role] = byRole[l.role] || []).push(l);
     $('orchestra').innerHTML = ['mel', 'ost', 'pad', 'bass'].filter((r) => byRole[r]).map((r) => `<span class="role">${ROLE_NAMES[r]}</span><span class="chips">${byRole[r].map((l) => `<span class="chip${prev.has(l.role + ':' + l.track) ? '' : ' new'}${loadingTrack(p, l.track) ? ' loading' : ''}" data-track="${l.track}" title="${esc(l.desc)}">${esc(l.desc.replace(/ \(.*/, ''))}${loadingTrack(p, l.track) ? ' (loading)' : ''}</span>`).join('')}</span>`).join('');
   }
 }

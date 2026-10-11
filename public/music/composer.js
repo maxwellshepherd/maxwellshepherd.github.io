@@ -1,6 +1,12 @@
 // Generative composer. Nothing here is a pre-written piece: every phrase is assembled in real time from primitives
 // (form grammar, modal chord graph, motif + development operations, ostinato cells, an arranger), and every
 // weighted choice is logged so the page can show each choice as you hear its consequence.
+//
+// What makes it sound composed rather than shuffled: sections are planned as periods of phrases that answer
+// each other (antecedent / consequent cadences), orchestration changes are rate-limited and staggered so
+// instruments enter mid-phrase or as pickups and leave after finishing their line, the tempo map breathes at
+// phrase ends and broadens into arrivals, dynamics follow a hairpin across each phrase, held chords swell,
+// suspensions resolve, melodies take pickups and land their cadences, and accents follow the hypermeter.
 
 export const PCN = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const SHARP_KEYS = new Set([2, 4, 6, 9, 11, 7]);
@@ -94,6 +100,8 @@ function scaleStep(p, steps, tonic, mode) {
   return q;
 }
 const nearestChordTone = (p, ch, maxd = 4) => { let best = p, bd = 99; for (let q = p - maxd; q <= p + maxd; q++) if (ch.pcs.includes(((q % 12) + 12) % 12) && Math.abs(q - p) < bd) { bd = Math.abs(q - p); best = q; } return best; };
+// nearest note whose pitch class is in a given set, with a bias toward preferred classes (cadences land on the root)
+const nearestOf = (p, pcs, prefer, maxd = 6) => { let best = p, bd = 99; for (let q = p - maxd; q <= p + maxd; q++) { const pc = ((q % 12) + 12) % 12; if (!pcs.includes(pc)) continue; const d = Math.abs(q - p) - (prefer.includes(pc) ? 1.5 : 0); if (d < bd) { bd = d; best = q; } } return best; };
 
 // ---------------------------------------------------------------------------
 // grammar tables (weights, not scripts)
@@ -108,16 +116,16 @@ const CHORD_GRAPH = {        // degree -> {degree: weight}; film-minor bias towa
   6: { 0: 3.5, 2: 2, 5: 1.5, 3: 1 },
 };
 const ROLES = {
-  emerge:    { e: [0.1, 0.2],  len: [[4, 2], [6, 2], [8, 1]], phrase: 2, hr: [[2, 2], [1, 1]] },
-  pulse:     { e: [0.28, 0.38], len: [[8, 3], [12, 1]], phrase: 4, hr: [[2, 3], [1, 1]] },
-  song:      { e: [0.34, 0.5], len: [[8, 2], [12, 1], [16, 1]], phrase: 4, hr: [[2, 3], [1, 2]] },
-  shadow:    { e: [0.3, 0.44], len: [[6, 1], [8, 2]], phrase: 2, hr: [[1, 2], [2, 1]] },
-  still:     { e: [0.18, 0.24], len: [[4, 1], [8, 1]], phrase: 4, hr: [[2, 2], [4, 1]] },
-  build:     { e: [0.45, 0.8], len: [[8, 2], [12, 2], [16, 1]], phrase: 4, hr: [[1, 2], [2, 2]] },
-  breath:    { e: [0.38, 0.66], len: [[2, 1], [4, 2]], phrase: 2, hr: [[1, 1]] },
-  arrival:   { e: [0.86, 1.0], len: [[8, 2], [12, 1], [16, 1]], phrase: 4, hr: [[2, 3], [1, 1]] },
-  afterglow: { e: [0.6, 0.42], len: [[4, 1], [8, 1]], phrase: 4, hr: [[2, 2]] },
-  coda:      { e: [0.22, 0.07], len: [[6, 1], [8, 1]], phrase: 2, hr: [[1, 1], [2, 1]] },
+  emerge:    { e: [0.1, 0.2],  len: [[4, 2], [6, 2], [8, 1]], hr: [[2, 2], [1, 1]] },
+  pulse:     { e: [0.28, 0.38], len: [[8, 3], [12, 1]], hr: [[2, 3], [1, 1]] },
+  song:      { e: [0.34, 0.5], len: [[8, 2], [12, 1], [16, 1]], hr: [[2, 3], [1, 2]] },
+  shadow:    { e: [0.3, 0.44], len: [[6, 1], [8, 2]], hr: [[1, 2], [2, 1]] },
+  still:     { e: [0.18, 0.24], len: [[4, 1], [8, 1]], hr: [[2, 2], [4, 1]] },
+  build:     { e: [0.45, 0.8], len: [[8, 2], [12, 2], [16, 1]], hr: [[1, 2], [2, 2]] },
+  breath:    { e: [0.38, 0.66], len: [[2, 1], [4, 2]], hr: [[1, 1]] },
+  arrival:   { e: [0.86, 1.0], len: [[8, 2], [12, 1], [16, 1]], hr: [[2, 3], [1, 1]] },
+  afterglow: { e: [0.6, 0.42], len: [[4, 1], [8, 1]], hr: [[2, 2]] },
+  coda:      { e: [0.22, 0.07], len: [[6, 1], [8, 1]], hr: [[1, 1], [2, 1]] },
 };
 const NEXT_ROLE = {
   start: { emerge: 6, pulse: 2.5, shadow: 1.5, still: 0.7 },
@@ -131,6 +139,21 @@ const NEXT_ROLE = {
   arrival: { afterglow: 3.5, coda: 4, arrival: 1, still: 1.5 },
   afterglow: { coda: 7, still: 3 },
 };
+// how a section of N bars is cut into phrases (hypermeter). Lyrical roles prefer regular periods.
+const PLANS = {
+  2: [[[2], 1]], 4: [[[4], 3], [[2, 2], 1]], 6: [[[3, 3], 2], [[2, 4], 1.5], [[4, 2], 1], [[2, 2, 2], 0.7]],
+  8: [[[4, 4], 4], [[2, 2, 4], 1.2], [[4, 2, 2], 0.8], [[3, 3, 2], 1], [[2, 3, 3], 0.6]],
+  12: [[[4, 4, 4], 3], [[6, 6], 1], [[4, 4, 2, 2], 0.8], [[3, 3, 3, 3], 0.8], [[4, 2, 2, 4], 0.7]],
+  16: [[[4, 4, 4, 4], 3], [[6, 6, 4], 0.8], [[4, 4, 2, 2, 4], 1], [[3, 3, 2, 4, 4], 0.6]],
+};
+const LYRICAL = new Set(['song', 'arrival', 'afterglow', 'still', 'coda', 'emerge']);
+const GENTLE = new Set(['emerge', 'still', 'shadow', 'pulse']);
+// phrase-level dynamic hairpin amplitude, per role
+const HAIR = { song: 0.12, afterglow: 0.1, arrival: 0.08, still: 0.04, emerge: 0.06, pulse: 0.05, build: 0.04, shadow: 0.08, coda: 0.08, breath: 0 };
+// how much the last beat of a phrase lengthens (agogic breath), per role
+const BREATH = { song: 1.06, afterglow: 1.07, still: 1.05, coda: 1.08, emerge: 1.04, shadow: 1.04, pulse: 1.02, build: 1.015, arrival: 1.03, breath: 1 };
+const RUBATO = new Set(['song', 'still', 'afterglow', 'coda', 'emerge', 'shadow']);
+const SUS_P = { song: 0.4, still: 0.4, afterglow: 0.4, coda: 0.45, emerge: 0.3, shadow: 0.25, pulse: 0.15, build: 0.15, arrival: 0.1, breath: 0 };
 const OST_CONTOURS = { up: [0, 1, 2, 3], updown: [0, 1, 2, 1], pendulum: [0, 2, 1, 3], broken: [0, 2, 1, 2], fifths: [0, 1], rising3: [0, 1, 2], turn: [1, 0, 1, 2], arpdown: [3, 2, 1, 0] };
 const GROUPINGS = { 8: [[3, 3, 2], [3, 2, 3], [2, 3, 3], [2, 2, 2, 2], [4, 4], [3, 3, 1, 1]], 6: [[3, 3], [2, 2, 2], [4, 2]], 16: [[3, 3, 2, 3, 3, 2], [3, 3, 3, 3, 4], [4, 4, 4, 4], [3, 3, 2, 2, 3, 3]], 12: [[3, 3, 3, 3], [6, 6], [4, 4, 4]], 9: [[3, 3, 3]] };
 // a section's principal accent pattern, scaled to a layer's subdivision
@@ -149,6 +172,7 @@ const CAND = {
   bass: [['sustain', 3, 0, 1], ['pedal', 1.6, 0, 0.7], ['pulse', 2.2, 0.35, 1], ['octaves', 1.6, 0.2, 1], ['pizz', 1, 0.15, 0.55]],
 };
 const BASS_TRACK = { sustain: 'basses', pedal: 'organ_pedal', pulse: 'vc_spic', octaves: 'piano_low', pizz: 'vc_pizz' };
+const ROLE_NAME = { ost: 'Ostinato', mel: 'Melody', pad: 'Harmony', bass: 'Bass' };
 const DEV_OPS = {
   song: { repeat: 3, sequence: 3, answer: 2, ornament: 1.5, fragment: 1, return: 0.5 },
   pulse: { repeat: 2, sequence: 2, fragment: 2, answer: 1 },
@@ -214,7 +238,7 @@ export class Composer {
     P.anchor = anchor;          // the 5th of the key in the violin octave: where melodies ask their question
     P.motif = this.makeMotif(P, t);
     P.motif0 = { durs: P.motif.durs.slice(), steps: P.motif.steps.slice(), bars: P.motif.bars };
-    P.stmt = 0; P.lastMelEnd = null; P.builds = 0;
+    P.stmt = 0; P.lastMelEnd = null; P.melEndT = -1; P.builds = 0;
     P.prevChord = null;
     P.layers = { bass: [], pad: [], ost: [], mel: [] };
     P.energy = 0.15;
@@ -276,6 +300,10 @@ export class Composer {
   newSection() {
     if (!this.piece || this.piece.done) { this.pendingRole = null; this.newPiece(); }
     const P = this.piece, t = this.t;
+    if (this.sec && this.sec.piece === P.no) {        // entry and exit bars were counted in the old section's bars
+      const ob = this.sec.bars;
+      for (const ls of Object.values(P.layers)) for (const l of ls) { l.from = Math.min(0, l.from - ob); if (l.until !== Infinity) l.until -= ob; }
+    }
     const role = this.pendingRole || this.chooseRole(t);
     this.pendingRole = null;
     const R = ROLES[role];
@@ -283,7 +311,10 @@ export class Composer {
     const jitter = (this.rng() - 0.5) * 0.08;
     let e0 = R.e[0] + jitter, e1 = R.e[1] + jitter;
     if (role === 'build') e0 = Math.max(0.3, Math.min(0.55, P.energy));
-    const S = { piece: P.no, role, bars, bar: 0, e0, e1, t0: t, phraseLen: R.phrase };
+    const S = { piece: P.no, role, bars, bar: 0, e0, e1, t0: t, phraseIdx: 0 };
+    // hypermeter: the section is cut into phrases that pair up as question and answer
+    const plans = (PLANS[bars] || [[[bars], 1]]).map(([p, w]) => [p, LYRICAL.has(role) && p.some((x) => x !== p[0]) ? w * 0.35 : w, p.join(' + ') + ' bars']);
+    S.plan = plans.length > 1 ? this.pick('section', 'Phrase plan', plans, t) : plans[0][0];
     const gw = P.meter.name === '6/8' ? [[[3, 3], 4], [[4, 2], 0.6], [[2, 2, 2], 0.4]] : P.meter.name === '3/4' ? [[[2, 2, 2], 3], [[3, 3], 1], [[4, 2], 1]] : GROUPINGS[8].map((g, i) => [g, [3, 2, 1.5, 1.2, 1, 0.8][i]]);
     S.grouping = this.pick('pattern', 'Accent pattern', gw.map(([g, w]) => [g, w, g.join('+')]), t);
     S.hr = this.pick('harmony', 'Harmonic rhythm', R.hr.map(([b, w]) => [b, w, b === 1 ? 'chord per bar' : b + ' bars per chord']), t);
@@ -297,9 +328,15 @@ export class Composer {
     S.pedal = ['emerge', 'shadow', 'still'].includes(role) ? this.chance('harmony', 'Pedal point', 0.65, t, 'hold the tonic', 'free bass')
       : role === 'build' ? this.chance('harmony', 'Pedal point', 0.35, t, 'tonic pedal under the build', 'free bass') : false;
     S.bpm = role === 'coda' ? Math.round(P.bpm * 0.82) : P.bpm;
-    S.rit = role === 'coda';
-    if (role === 'coda' && this.cutPending) { this.t += 60 / P.bpm * P.meter.beats; S.t0 = this.t; }
+    if (role === 'coda' && this.cutPending) { this.t += 60 / P.bpm * P.meter.beats; S.t0 = this.t; S.afterCut = true; }
     this.cutPending = false;
+    // the tempo breathes: a per-bar rubato walk for lyrical roles, and an agogic lengthening of each phrase's last beat
+    S.breath = BREATH[role] || 1;
+    S.rub = []; let r = 1;
+    for (let b = 0; b < bars; b++) { S.rub.push(RUBATO.has(role) ? r : 1); r = Math.max(0.985, Math.min(1.015, r + (this.rng() - 0.5) * 0.02)); }
+    if (['song', 'build', 'arrival', 'afterglow', 'coda', 'still'].includes(role))
+      S.pickup = this.pick('motif', 'Melody pickup', [[0, 3, 'the tune starts on the downbeat'], [1, 1.5, 'an eighth-note pickup'], [2, 2, 'a quarter-note pickup']], t);
+    if (role === 'arrival' || (role === 'build' && e1 > 0.7)) S.stabs = this.chance('pattern', 'Brass on the strong bars', role === 'arrival' ? 0.6 : 0.35, t, 'accented chords', 'sustained only');
     S.motifOps = 0;
     if (role !== 'emerge' && role !== 'breath' && P.sections > 1 && this.chance('motif', 'Motif mutation', 0.3, t, 'mutate the motif', 'keep it')) this.mutateMotif(P, t);
     if (role === 'arrival') { P.peaked = true; P.builds = 0; P.arrivals = (P.arrivals || 0) + (this.sec && this.sec.role === 'arrival' ? 0 : 1); }
@@ -319,32 +356,47 @@ export class Composer {
   }
 
   // ------- harmony for one phrase ---------------------------------------------------
-  phraseChords(P, S, bars, t, isLast, barTime) {
-    const nCh = Math.max(1, Math.round(bars / S.hr));
+  // kind: 'ante' (question, ends open), 'cons' (answer, resolves), 'final' (the section's own ending)
+  phraseChords(P, S, bars, t, kind, barTime) {
+    const nCh0 = Math.max(1, Math.round(bars / S.hr));
     const mode = S.mode, T = P.tonic;
     const ok = (d) => usableDeg(mode, d);
-    const at = (i) => barTime(i * bars / nCh);
     const label = (d) => { const c = mkChord(T, mode, d); return c.name + ' (' + c.num + ')'; };
+    const per = bars / nCh0;
+    let lens = Array(nCh0).fill(per);
+    const at = (i) => barTime(lens.slice(0, i).reduce((a, b) => a + b, 0));
     // 1. how the phrase ends is decided first; its chords are consequences, not separate choices
-    const fixed = {};
+    let fixed = {};
     let cadence = 'open', borrow = false;
-    if (S.role === 'coda' && isLast) fixed[nCh - 1] = 0;
-    else if (isLast && nCh >= 2 && !['emerge', 'still'].includes(S.role)) {
-      let opts = S.role === 'build' || S.role === 'breath' ? [['half', 3, 'on the dominant (unresolved)'], ['aeolian', 2.5, 'climbing VI to VII'], ['open', 1, 'left open']]
-        : [['authentic', 1.5, 'resolving home (V to i)'], ['plagal', 1.5, 'softly home (iv to i)'], ['deceptive', 1.2, 'a surprise turn (V to VI)'], ['half', 1.5, 'on the dominant (unresolved)'], ['aeolian', 1.5, 'climbing VI to VII'], ['open', 2, 'left open']];
+    const isLast = kind === 'final';
+    const quiet = ['emerge', 'still'].includes(S.role);
+    if (S.role === 'coda' && isLast) fixed[nCh0 - 1] = 0;
+    else if (nCh0 >= 2 && !(quiet && isLast)) {
+      let opts;
+      if (quiet) opts = [['open', 3, 'left open'], ['half', 1, 'on the dominant (unresolved)'], ['plagal', 0.6, 'softly home (iv to i)']];
+      else if (isLast && (S.role === 'build' || S.role === 'breath')) opts = [['half', 3, 'on the dominant (unresolved)'], ['aeolian', 2.5, 'climbing VI to VII'], ['open', 1, 'left open']];
+      else if (kind === 'ante') opts = [['half', 3, 'on the dominant (unresolved)'], ['open', 2, 'left open'], ['aeolian', 1.5, 'climbing VI to VII'], ['deceptive', 0.6, 'a surprise turn (V to VI)']];
+      else opts = [['authentic', 2, 'resolving home (V to i)'], ['plagal', 1.8, 'softly home (iv to i)'], ['deceptive', 1, 'a surprise turn (V to VI)'], ['half', isLast ? 1.2 : 0.6, 'on the dominant (unresolved)'], ['aeolian', 1.2, 'climbing VI to VII'], ['open', isLast ? 1.2 : 0.8, 'left open']];
       opts = opts.filter(([c]) => (c !== 'plagal' || ok(3)) && (c !== 'aeolian' || (ok(5) && ok(6))) && (c !== 'deceptive' || ok(5)));
-      const first = { authentic: nCh - 2, plagal: nCh - 2, deceptive: nCh - 2, half: nCh - 1, aeolian: nCh - 2, open: nCh - 1 };
-      cadence = this.pick('harmony', 'How the phrase ends', opts.map(([c, w, n]) => [c, w, n]), at(Math.max(0, nCh - 2)));
-      if (cadence === 'authentic') { fixed[nCh - 2] = 4; fixed[nCh - 1] = 0; }
-      else if (cadence === 'plagal') { fixed[nCh - 2] = 3; fixed[nCh - 1] = 0; }
-      else if (cadence === 'deceptive') { fixed[nCh - 2] = 4; fixed[nCh - 1] = 5; }
-      else if (cadence === 'half') fixed[nCh - 1] = 4;
-      else if (cadence === 'aeolian') { fixed[nCh - 2] = 5; fixed[nCh - 1] = 6; }
+      const first = { authentic: nCh0 - 2, plagal: nCh0 - 2, deceptive: nCh0 - 2, half: nCh0 - 1, aeolian: nCh0 - 2, open: nCh0 - 1 };
+      cadence = this.pick('harmony', 'How the phrase ends', opts.map(([c, w, n]) => [c, w, n]), at(Math.max(0, nCh0 - 2)));
+      if (cadence === 'authentic') { fixed[nCh0 - 2] = 4; fixed[nCh0 - 1] = 0; }
+      else if (cadence === 'plagal') { fixed[nCh0 - 2] = 3; fixed[nCh0 - 1] = 0; }
+      else if (cadence === 'deceptive') { fixed[nCh0 - 2] = 4; fixed[nCh0 - 1] = 5; }
+      else if (cadence === 'half') fixed[nCh0 - 1] = 4;
+      else if (cadence === 'aeolian') { fixed[nCh0 - 2] = 5; fixed[nCh0 - 1] = 6; }
       // borrowing a major V (its leading tone) is a deliberate, visible choice in minor-ish modes
       if (['authentic', 'half', 'deceptive'].includes(cadence) && (MINORISH.has(mode) || !ok(4)))
         borrow = !ok(4) || this.chance('harmony', 'Borrow a major dominant', 0.7, at(first[cadence]), 'yes, for a stronger pull home', 'no, keep the modal colour');
       if (!ok(4) && !borrow) { for (const k in fixed) if (fixed[k] === 4) fixed[k] = ok(6) ? 6 : 3; }
+      // a quicker turn into the cadence: the pre-dominant takes only the last bar before home
+      if (['authentic', 'plagal', 'deceptive'].includes(cadence) && per >= 2 && kind !== 'ante'
+        && this.chance('harmony', 'Cadence pace', 0.35, at(nCh0 - 2), 'a quicker turn into the cadence', 'even pacing')) {
+        lens = lens.slice(0, nCh0 - 2).concat([per - 1, 1, per]);
+        const nf = {}; for (const k in fixed) nf[+k >= nCh0 - 2 ? +k + 1 : +k] = fixed[k]; fixed = nf;
+      }
     }
+    const nCh = lens.length;
     // 2. the free slots are drawn from the chord graph, staying inside the mode
     const degs = [];
     let cur = P.prevChord && P.prevChord.mode === mode ? P.prevChord.deg : 0;
@@ -369,16 +421,22 @@ export class Composer {
       return ch;
     });
     P.prevChord = chords[chords.length - 1];
-    return { chords, cadence };
+    const spans = []; let pos = 0;
+    for (let i = 0; i < nCh; i++) { spans.push([pos, pos + lens[i], chords[i]]); pos += lens[i]; }
+    return { chords, cadence, spans };
   }
 
-  // ------- arranger: decides who plays, per role, at each phrase boundary ------------------------
-  arrange(P, S, e, t) {
+  // ------- arranger: decides who plays, when they enter and when they leave ------------------------
+  // Changes are rate-limited (a composed score adds or removes one voice at a time, more at a section
+  // start, everything at an arrival) and placed within the phrase: on the downbeat, mid-phrase, or as a
+  // pickup into the next phrase. Leaving voices finish the phrase first unless the energy jumps.
+  arrange(P, S, e, bars, sb, phI, tAt, isLast) {
     const L = P.layers;
     const palBias = {
       strings: { vla_pad: 1.5, vln_pad: 1.5, vln_theme: 1.5, vc_theme: 1.4, vla_spic: 1.4 }, brass: { horns: 2, horns_chords: 2, trombones: 1.6, trumpets: 1.5 },
       keys: { piano: 1.5, marimba: 2, glock: 1.6, harp: 1.5, piano_mel: 1.6 }, winds: { clarinets: 1.8, flutes: 1.8, oboe: 2.2 }, organ: { organ: 2, organ_soft: 2, organ_arp: 2 },
     }[P.palette] || {};
+    for (const r in L) L[r] = L[r].filter((l) => l.until > sb);      // voices that finished their exit are gone
     const busy = new Set(Object.values(L).flat().map((l) => l.track));
     const budget = {
       bass: e < 0.3 ? 1 : e < 0.7 ? 2 : 3,
@@ -387,31 +445,61 @@ export class Composer {
       mel: ['song', 'build', 'arrival', 'afterglow', 'coda', 'still'].includes(S.role) ? (e < 0.55 ? 1 : e < 0.85 ? 2 : 3)
         : (S.role === 'emerge' || S.role === 'shadow') && this.rng() < 0.45 ? 1 : 0,
     };
-    for (const role of ['bass', 'pad', 'ost', 'mel']) {
+    const secStart = sb === 0;
+    const jumpUp = secStart && e - this.lastE > 0.2 && P.sections > 1;          // a new piece assembles itself; a jump within a piece is a cut
+    const drop = secStart && this.lastE - e > 0.2 && !S.afterCut;               // after a climax the outgoing voices fade through the first bar
+    const big = secStart && (S.role === 'arrival' || S.role === 'breath' || jumpUp || drop);
+    let changes = big ? 99 : secStart ? 3 : phI % 2 === 1 ? 1 : 2;
+    const tEnd = sb + bars, beats = P.meter.beats;
+    const roles = ['bass', 'pad', 'ost', 'mel'], k0 = Math.floor(this.rng() * 4);
+    // something must sound from the first beat: the first voice to join an empty texture enters on the downbeat
+    const sounding = () => Object.values(L).flat().some((l) => l.from <= sb && l.until > sb);
+    const leave = (l, role, when) => {        // when: 'now' | 'dovetail' | 'end'
+      if (when === 'now') { L[role] = L[role].filter((x) => x !== l); busy.delete(l.track); }
+      else if (when === 'dovetail') { l.until = sb + 1; l.dovetail = true; }
+      else l.until = tEnd;
+    };
+    for (const role of roles.slice(k0).concat(roles.slice(0, k0))) {
       const cands = CAND[role];
       const fits = (c) => c && e >= c[2] - 0.04 && e <= c[3] + 0.04;
       const candOf = (l) => cands.find((c) => c[0] === (l.kind || l.track));
+      const staying = () => L[role].filter((l) => l.until > tEnd);
+      const counted = () => L[role].filter((l) => !l.dovetail).length;
+      const how = big ? (drop && role !== 'mel' ? 'dovetail' : 'now') : 'end';
       for (const l of [...L[role]]) {
-        if (!fits(candOf(l))) {
-          L[role] = L[role].filter((x) => x !== l); busy.delete(l.track);
-          this.decisions.push({ t, level: 'layer', label: `${l.desc} bows out`, chosen: 0, options: [{ name: 'energy moved out of its range', p: 1 }] });
-        }
+        if (l.until <= tEnd || fits(candOf(l))) continue;
+        leave(l, role, how);
+        this.decisions.push({ t: tAt(how === 'end' ? bars : 0), level: 'layer', label: `${l.desc} bows out`, chosen: 0, options: [{ name: 'energy moved out of its range', p: 1 }] });
       }
-      while (L[role].length > budget[role]) {
-        const victim = this.pick('layer', `${role === 'ost' ? 'Ostinato' : role === 'mel' ? 'Melody' : role === 'pad' ? 'Harmony' : 'Bass'}: who drops out`, L[role].map((l) => [l, 1 + l.age, l.desc]), t);
-        L[role] = L[role].filter((x) => x !== victim); busy.delete(victim.track);
+      while (staying().length > budget[role]) {
+        const victim = this.pick('layer', `${ROLE_NAME[role]}: who drops out`, staying().map((l) => [l, 1 + l.age, l.desc]), tAt(how === 'end' ? bars : 0));
+        leave(victim, role, how);
+        changes--;
       }
-      if (L[role].length && role !== 'bass' && this.rng() < 0.12) {
-        const victim = this.pick('layer', `${role === 'ost' ? 'Ostinato' : role === 'mel' ? 'Melody' : 'Harmony'}: hand over`, L[role].map((l) => [l, 1 + l.age, l.desc]), t);
-        L[role] = L[role].filter((x) => x !== victim); busy.delete(victim.track);
+      if (changes > 0 && role !== 'bass' && !secStart && this.rng() < 0.1) {
+        const old = staying().filter((l) => l.age >= 3);
+        if (old.length) { const victim = this.pick('layer', `${ROLE_NAME[role]}: hand over`, old.map((l) => [l, 1 + l.age, l.desc]), tAt(bars)); victim.until = tEnd; changes--; }
       }
-      while (L[role].length < budget[role]) {
+      while (counted() < budget[role] && changes > 0) {
         const opts = cands.filter((c) => fits(c) && !busy.has(role === 'bass' ? BASS_TRACK[c[0]] : c[0]) && !(role === 'bass' && L.bass.some((l) => l.kind === c[0])))
           .map((c) => [c, c[1] * (palBias[c[0]] || 1), pretty(c[0])]);
         if (!opts.length) break;
-        const c = this.pick('layer', `${role === 'ost' ? 'Ostinato' : role === 'mel' ? 'Melody' : role === 'pad' ? 'Harmony' : 'Bass'}: who joins`, opts, t);
-        const layer = this.makeLayer(P, S, role, c, t);
-        L[role].push(layer); busy.add(layer.track);
+        const di = this.decisions.length;
+        const c = this.pick('layer', `${ROLE_NAME[role]}: who joins`, opts, tAt(0));
+        const layer = this.makeLayer(P, S, role, c, tAt(0));
+        let enter = 0;
+        if ((!big || drop) && bars >= 2 && sounding()) {
+          const gentle = GENTLE.has(S.role);
+          const mid = role === 'mel' ? (P.motif.bars < bars ? P.motif.bars : 0) : Math.min(2, bars - 1);
+          const eo = [[0, secStart ? (gentle ? 2.5 : 4) : 3, 'on the downbeat']];
+          if (mid > 0) eo.push([mid, secStart ? (gentle ? 2 : 1) : 1.2, `in bar ${mid + 1}`]);
+          if (role !== 'mel' && !isLast) eo.push([bars - 1 / beats, 1.5, 'as a pickup into the next phrase']);
+          enter = eo.length > 1 ? this.pick('layer', `${pretty(c[0])}: entrance`, eo, tAt(0)) : 0;
+        }
+        layer.from = sb + enter; layer.until = Infinity;
+        const te = tAt(enter);
+        for (const d of this.decisions.slice(di)) d.t = te;     // its cards appear when it is heard
+        L[role].push(layer); busy.add(layer.track); changes--;
       }
       for (const l of L[role]) l.age++;
     }
@@ -421,12 +509,12 @@ export class Composer {
     const E = P.meter.E;
     if (role === 'bass') {
       const kind = c[0];
-      const L = { role, kind, track: BASS_TRACK[kind], age: 0, desc: pretty(kind) };
+      const L = { role, kind, track: BASS_TRACK[kind], age: 0, desc: pretty(kind), from: 0, until: Infinity };
       if (kind === 'pulse' || kind === 'pizz') L.grouping = this.pick('pattern', 'Bass accents', (GROUPINGS[E] || GROUPINGS[8]).map((g) => [g, 1, g.join('+')]), t);
       return L;
     }
-    if (role === 'pad') return { role, track: c[0], reg: c[4], age: 0, desc: pretty(c[0]), prev: null };
-    if (role === 'mel') return { role, track: c[0], oct: c[4], age: 0, desc: pretty(c[0]) + ' (melody)' };
+    if (role === 'pad') return { role, track: c[0], reg: c[4], age: 0, desc: pretty(c[0]), prev: null, from: 0, until: Infinity };
+    if (role === 'mel') return { role, track: c[0], oct: c[4], age: 0, desc: pretty(c[0]) + ' (melody)', from: 0, until: Infinity };
     const track = c[0];
     const subs = [['e', 3, '8ths'], ['s', ['piano', 'marimba', 'organ_arp', 'harp'].includes(track) ? 1.6 : 0.3, '16ths']];
     if (P.meter.name !== '6/8') subs.push(['t', ['harp', 'flutes', 'marimba', 'glock'].includes(track) ? 2 : 0.4, 'triplets']);
@@ -447,7 +535,8 @@ export class Composer {
       const ext = cell.concat(cell.slice(1, -1).reverse(), cell);
       cell = ext.slice(0, L);
     }
-    return { role, track, sub, slots, cell, contour, process, grouping, phase: 0, base: c[4], age: 0, desc: `${pretty(track)} (${contour}, ${{ e: '8ths', s: '16ths', t: 'triplets' }[sub]}, ${process === 'grow' ? 'growing' : process === 'cycle' ? 'drifting ' + cell.length + '-note cycle' : grouping.join('+')})` };
+    return { role, track, sub, slots, cell, contour, process, grouping, phase: 0, base: c[4], age: 0, from: 0, until: Infinity, thin: false,
+      desc: `${pretty(track)} (${contour}, ${{ e: '8ths', s: '16ths', t: 'triplets' }[sub]}, ${process === 'grow' ? 'growing' : process === 'cycle' ? 'drifting ' + cell.length + '-note cycle' : grouping.join('+')})` };
   }
 
   // ------- one phrase of music -----------------------------------------------------------
@@ -457,96 +546,162 @@ export class Composer {
       this.newSection();
     }
     const P = this.piece, S = this.sec;
-    const bars = Math.min(S.phraseLen, S.bars - S.bar);
+    const phI = S.phraseIdx;
+    const bars = Math.max(1, Math.min(S.plan[phI] ?? 4, S.bars - S.bar));
     const isLast = S.bar + bars >= S.bars;
+    const kind = isLast ? 'final' : phI % 2 === 0 ? 'ante' : 'cons';
     const t0 = this.t, beats = P.meter.beats, E = P.meter.E;
-    const barDur = 60 / S.bpm * beats;
+    const beatDur = 60 / S.bpm, barDur = beatDur * beats;
     const sb = S.bar;                 // frozen: S.bar advances at the end of the phrase, timestamps must not move with it
-    const timeOf = (barF) => {
-      if (!S.rit) return t0 + barF * barDur;
-      let tt = t0; const steps = Math.max(1, Math.ceil(barF * 8));
-      for (let k = 0; k < steps; k++) { const b = sb + ((k + 0.5) / steps) * barF; const slow = 1 + 0.35 * Math.max(0, (b - (S.bars - 3)) / 3); tt += (barF / steps) * barDur * slow; }
-      return tt;
-    };
-    const eAt = (barF) => S.e0 + (S.e1 - S.e0) * Math.min(1, (sb + barF) / S.bars);
-    const e = eAt(0.5 * bars);
-    P.energy = e;
-    const dec0 = this.decisions.length;
     if (S.bar === 0) for (const d of this.decisions) d.t = Math.max(d.t, t0);
-    this.arrange(P, S, e, t0);
-    const { chords, cadence } = this.phraseChords(P, S, bars, t0, isLast, timeOf);
     // the next section is chosen before this one ends, so transitions can prepare for what actually comes next
-    if (isLast && S.role !== 'coda') { P.elapsed += timeOf(bars) - t0; this.pendingRole = this.chooseRole(timeOf(bars)); P.elapsed -= timeOf(bars) - t0; }
+    if (isLast && S.role !== 'coda') { P.elapsed += bars * barDur; this.pendingRole = this.chooseRole(t0 + bars * barDur); P.elapsed -= bars * barDur; }
     const nextRole = isLast ? (S.role === 'coda' ? 'new piece' : this.pendingRole) : null;
-    const per = bars / chords.length;
-    const chordAt = (barF) => chords[Math.min(chords.length - 1, Math.floor(barF / per + 1e-9))];
-    const chordSpan = chords.map((ch, i) => [i * per, (i + 1) * per, ch]);
+    // ---- tempo map: section drift (builds press on, arrivals broaden, codas slow), rubato, and a breath at phrase ends ----
+    const nB = bars * beats, st = new Array(nB), T = [0];
+    for (let i = 0; i < nB; i++) {
+      const bar = sb + i / beats, prog = bar / S.bars;
+      let s = 1;
+      if (S.role === 'build') s /= 1 + 0.05 * prog;
+      else if (S.role === 'arrival' && sb < 2) s *= 1 + 0.05 * Math.max(0, 1 - bar / 2);
+      else if (S.role === 'coda') s *= 1 + 0.35 * Math.max(0, (bar - (S.bars - 3)) / 3);
+      s *= S.rub[Math.min(S.rub.length - 1, Math.floor(bar))] || 1;
+      if (i === nB - 1) { s *= S.breath; if (isLast) s *= nextRole === 'arrival' ? 1.14 : nextRole === 'breath' ? 1 : 1.05; }
+      st[i] = s; T.push(T[i] + beatDur * s);
+    }
+    const timeOf = (barF) => {
+      const x = barF * beats;
+      if (x <= 0) return t0 + x * beatDur * st[0];
+      if (x >= nB) return t0 + T[nB] + (x - nB) * beatDur * st[nB - 1];
+      const i = Math.floor(x); return t0 + T[i] + (x - i) * beatDur * st[i];
+    };
+    // ---- dynamics: the section's ramp, shaped by a hairpin across the phrase ----
+    const ramp = (barF) => S.e0 + (S.e1 - S.e0) * Math.min(1, (sb + barF) / S.bars);
+    const A = HAIR[S.role] ?? 0.06;
+    const hair = (barF) => { const f = Math.max(0, Math.min(1, barF / bars)); return f < 0.65 ? -0.5 + f / 0.65 : 0.5 - (f - 0.65) / 0.35 * 0.8; };
+    const eAt = (barF) => Math.max(0.03, Math.min(1, ramp(barF) * (1 + A * hair(barF))));
+    const e = ramp(0.5 * bars);
+    P.energy = e;
+    for (const l of P.layers.ost) l.thin = false;
+    this.arrange(P, S, e, bars, sb, phI, timeOf, isLast);
+    const { chords, cadence, spans: chordSpan } = this.phraseChords(P, S, bars, t0, kind, timeOf);
+    const chordAt = (barF) => { for (const [a, b, ch] of chordSpan) if (barF >= a - 1e-9 && barF < b) return ch; return chordSpan[chordSpan.length - 1][2]; };
+    const resolving = ['authentic', 'plagal'].includes(cadence);
     const ev = [];
-    const note = (track, b0, b1, pitch, lev) => {
+    const note = (track, b0, b1, pitch, lev, x = null) => {
       if (b1 <= b0) return;
       const ta = timeOf(b0), tb = timeOf(b1);
-      ev.push({ type: 'note', track, t: ta, dur: Math.max(0.05, tb - ta), pitch, lev });
+      ev.push({ type: 'note', track, t: ta, dur: Math.max(0.05, tb - ta), pitch, lev, b0, b1, ...(x || {}) });
     };
     const L = P.layers;
     const dynBase = { bass: 0.12, pad: 0.06, ost: 0.1, mel: 0.22 };
     const lev = (role, barF) => Math.min(1, dynBase[role] + 0.82 * Math.pow(eAt(barF), 1.15));
     const ped = (ch) => (S.pedal ? { ...ch, bass: P.tonic } : ch);
+    const span = (l) => [Math.max(0, l.from - sb), Math.min(bars, l.until - sb)];     // where this voice sounds within the phrase
+    const fadeOf = (l, bf) => (l.dovetail ? 0.7 * Math.max(0.2, 1 - 0.8 * bf) : 1);         // outgoing voices fade through their last bar
+    const strong = (b) => (sb + b) % 4 === 0;                                           // hypermetric downbeat
+    const approachP = { song: 0.4, build: 0.4, arrival: 0.35, afterglow: 0.35, pulse: 0.3, coda: 0.3 }[S.role] || 0.1;
 
     // ---- bass ----
     for (const l of L.bass) {
+      const [s0, s1] = span(l);
+      if (s1 <= s0) continue;
       if (l.kind === 'sustain' || l.kind === 'pedal' || l.kind === 'octaves') {
-        for (const [a, b, ch0] of chordSpan) {
+        chordSpan.forEach(([a0, b0, ch0], i) => {
+          const a = Math.max(a0, s0), b = Math.min(b0, s1);
+          if (b <= a) return;
           const ch = l.kind === 'pedal' ? { ...ch0, bass: P.tonic } : ped(ch0);
-          if (l.kind === 'sustain') { note('basses', a, b, bassNote(ch, 28, 39), lev('bass', a)); note('vc_pad', a, b, bassNote(ch, 36, 47), lev('bass', a) * 0.95); }
-          else if (l.kind === 'pedal') { note('organ_pedal', a, b, bassNote(ch, 36, 47), lev('bass', a)); note('organ_pedal', a, b, bassNote(ch, 24, 35), lev('bass', a) * 0.95); }
-          else { const bn = bassNote(ch, 36, 47); note('piano_low', a, b, bn, lev('bass', a) * 0.9); note('piano_low', a + 0.004, b, bn - 12, lev('bass', a) * 0.8); }
-        }
+          const lo = l.kind === 'sustain' ? 28 : 36, hi = lo + 11;
+          const bn = bassNote(ch, lo, hi);
+          // an approach note: the last beat steps toward the next root (bass lines move, they do not only jump)
+          let bEnd = b, app = null;
+          const nx = chordSpan[i + 1];
+          if (l.kind !== 'pedal' && !S.pedal && nx && b === b0 && b - a >= 1 && this.rng() < approachP) {
+            const nb = bassNote(ped(nx[2]), lo, hi);
+            if (nb !== bn && Math.abs(nb - bn) <= 7) { const ap = scaleStep(nb, nb > bn ? -1 : 1, P.tonic, S.mode); if (ap !== bn && Math.abs(ap - bn) <= 7) { app = ap; bEnd = b - 1 / beats; } }
+          }
+          const emit = (tr, p, mul) => { note(tr, a, bEnd, p, lev('bass', a) * mul * fadeOf(l, a), l.dovetail ? { fade: true } : null); if (app !== null) note(tr, bEnd, b, p + (app - bn), lev('bass', a) * mul * 0.9 * fadeOf(l, a)); };
+          if (l.kind === 'sustain') { emit('basses', bn, 1); emit('vc_pad', bassNote(ch, 36, 47), 0.95); }
+          else if (l.kind === 'pedal') { emit('organ_pedal', bn, 1); emit('organ_pedal', bn - 12, 0.95); }
+          else { emit('piano_low', bn, 0.9); note('piano_low', a + 0.004, bEnd, bn - 12, lev('bass', a) * 0.8); if (app !== null) note('piano_low', bEnd + 0.004, b, app - 12, lev('bass', a) * 0.7); }
+        });
       } else {
         const tr = l.track;
         const starts = new Set(); let k = 0; for (const g of l.grouping) { starts.add(k); k += g; }
         for (let b = 0; b < bars; b++) {
           const ch = ped(chordAt(b)), bn = bassNote(ch, 36, 47);
-          for (let i = 0; i < E; i++) note(tr, b + i / E, b + (i + 0.8) / E, starts.has(i) ? bn - 12 : bn, lev('bass', b) * (starts.has(i) ? 1.12 : 0.85));
-          if (l.kind === 'pulse' && e > 0.6) for (const i of starts) note('basses_spic', b + i / E, b + (i + 0.9) / E, bassNote(ch, 28, 39), lev('bass', b));
+          for (let i = 0; i < E; i++) {
+            const bf = b + i / E;
+            if (bf < s0 || bf >= s1) continue;
+            note(tr, bf, b + (i + 0.8) / E, starts.has(i) ? bn - 12 : bn, lev('bass', bf) * (starts.has(i) ? 1.12 : 0.85) * fadeOf(l, bf));
+          }
+          if (l.kind === 'pulse' && e > 0.6) for (const i of starts) if (b + i / E >= s0 && b + i / E < s1) note('basses_spic', b + i / E, b + (i + 0.9) / E, bassNote(ch, 28, 39), lev('bass', b));
         }
       }
     }
-    // ---- pads ----
-    for (const [a, b, ch] of chordSpan) {
+    // ---- pads: held chords that swell, with suspensions that resolve a beat late ----
+    const susP = SUS_P[S.role] ?? 0.2;
+    for (const [a0, b0, ch] of chordSpan) {
       const occupied = new Set();
       for (const l of L.pad) {
-        if (l.track === '~pad') { const v = voicing(ch, 4, 50, 64, l.prev); l.prev = v; ev.push({ type: 'pad', t: timeOf(a), dur: timeOf(b) - timeOf(a), midis: v, lev: 0.06 + 0.12 * e }); continue; }
+        const [s0, s1] = span(l);
+        const a = Math.max(a0, s0), b = Math.min(b0, s1);
+        if (b <= a) continue;
+        if (l.track === '~pad') { const v = voicing(ch, 4, 50, 64, l.prev); l.prev = v; ev.push({ type: 'pad', t: timeOf(a), dur: timeOf(b) - timeOf(a), midis: v, lev: 0.06 + 0.12 * eAt(a) }); continue; }
         const nv = l.track === 'organ' || l.track === 'organ_soft' ? 4 : l.track === 'vln_high' ? 2 : 3;
-        const v = voicing(ch, nv, l.reg[0], l.reg[1], l.prev, occupied); l.prev = v;
-        for (const p of v) { note(l.track, a, b, p, lev('pad', a)); occupied.add(p); }
+        const v = voicing(ch, nv, l.reg[0], l.reg[1], l.prev, occupied);
+        const prev = l.prev; l.prev = v;
+        const swell = b - a >= 1 && !/organ/.test(l.track);
+        let sus = -1;
+        if (prev && a === a0 && b - a >= 1 && this.rng() < susP) {
+          const sorted = [...prev].sort((x, y) => x - y);
+          for (let i = 0; i < v.length; i++) { const d = sorted[i] - v[i]; if ((d === 1 || d === 2) && !ch.pcs.includes(sorted[i] % 12) && !v.includes(sorted[i])) { sus = i; break; } }
+          if (sus >= 0) { const held = sorted[sus]; note(l.track, a, a + 1 / beats, held, lev('pad', a) * fadeOf(l, a)); note(l.track, a + 1 / beats, b, v[sus], lev('pad', a) * fadeOf(l, a), { fadeIn: 0.1, swell, fade: l.dovetail }); occupied.add(v[sus]); }
+        }
+        for (let i = 0; i < v.length; i++) { if (i === sus) continue; note(l.track, a, b, v[i], lev('pad', a) * fadeOf(l, a), { swell, fade: l.dovetail }); occupied.add(v[i]); }
       }
     }
-    // ---- ostinati ----
+    // ---- ostinati: the figures climb through a build and may thin to their accents for a phrase ----
+    if (sb !== 0 && L.ost.length >= 2 && ['song', 'pulse', 'shadow', 'afterglow'].includes(S.role)
+      && this.chance('pattern', 'Texture', 0.22, t0, 'one figure thins to its accents', 'full texture')) {
+      const cands = L.ost.filter((l) => l.from <= sb);
+      if (cands.length) cands[Math.floor(this.rng() * cands.length)].thin = true;
+    }
+    const climbOf = (bar) => (S.role === 'build' ? Math.round(7 * bar / S.bars) : S.role === 'arrival' && (P.arrivals || 0) >= 2 ? 5 : 0);
     for (const l of L.ost) {
+      const [s0, s1] = span(l);
+      if (s1 <= s0) continue;
       const n = l.slots;
       for (let b = 0; b < bars; b++) {
         const ch = chordAt(b);
-        const tones = chordTones(ch, midiOfPc(ch.pcs[2], l.base - 3, l.base + 8), 5);
+        const lo = l.base - 3 + climbOf(sb + b);
+        const tones = chordTones(ch, midiOfPc(ch.pcs[2], lo, lo + 11), 5);
         let groups = l.grouping;
         if (l.process === 'grow') { const g = 2 + ((sb + b) % 4); groups = []; let left = n; while (left > 0) { groups.push(Math.min(g, left)); left -= g; } }
         let pos = 0;
         for (const g of groups) {
           for (let j = 0; j < g && pos < n; j++, pos++) {
+            const bf = b + pos / n;
+            if (bf < s0 || bf >= s1) continue;
+            if (l.thin && j !== 0) continue;
             const idx = l.process === 'cycle' ? (l.phase + pos) % l.cell.length : j % l.cell.length;
             const pitch = tones[l.cell[idx] % tones.length];
-            note(l.track, b + pos / n, b + (pos + 1) / n, pitch, lev('ost', b) * (j === 0 ? 1.12 : 0.88));
+            note(l.track, bf, b + (pos + 1) / n, pitch, lev('ost', bf) * (j === 0 ? 1.12 : 0.88) * fadeOf(l, bf));
           }
         }
         l.phase = (l.phase + n) % 840;
       }
     }
     // ---- melody: the motif, developed; it remembers where it was across phrases ----
-    if (L.mel.length) {
+    const melLayers = L.mel.filter((l) => { const [s0, s1] = span(l); return s1 > s0; });
+    if (melLayers.length) {
       const stmts = Math.max(1, Math.floor(bars / P.motif.bars));
       const ops = DEV_OPS[S.role] || DEV_OPS.song;
       const line = [];
       const arch = [0, 2, 4, 1, 3, 5, 2, 0];
       const lift0 = { arrival: 4, afterglow: 2, build: 2, song: 0, coda: 0 }[S.role] ?? 0;
+      const lead = melLayers[0], leadFrom = Math.max(0, lead.from - sb);
+      const pk = S.pickup || 0;
       for (let k = 0; k < stmts; k++) {
         const op = k === 0 && S.motifOps === 0 ? 'repeat' : this.pick('motif', 'Development', Object.entries(ops).map(([o, w]) => [o, w, o]), timeOf(k * P.motif.bars));
         S.motifOps++;
@@ -554,7 +709,7 @@ export class Composer {
         let durs = m.durs.slice(), steps = m.steps.slice();
         const full = m.bars * E;
         if (op === 'invert') steps = steps.map((x) => -x);
-        if (op === 'augment') { const out = [], st = []; let tot = 0; for (let q = 0; q < durs.length && tot < full; q++) { const d = Math.min(durs[q] * 2, full - tot); out.push(d); st.push(steps[q]); tot += d; } durs = out; steps = st; }
+        if (op === 'augment') { const out = [], stp = []; let tot = 0; for (let q = 0; q < durs.length && tot < full; q++) { const d = Math.min(durs[q] * 2, full - tot); out.push(d); stp.push(steps[q]); tot += d; } durs = out; steps = stp; }
         if (op === 'fragment') { const half = Math.max(1, Math.ceil(durs.length / 2)); const fd = durs.slice(0, half); const tot = fd.reduce((a, b) => a + b, 0); if (tot * 2 <= full) { durs = fd.concat(fd); steps = steps.slice(0, half).concat(steps.slice(0, half).map((x) => x + 1)); durs[durs.length - 1] += full - tot * 2; } }
         if (op === 'answer') steps = steps.map((x, q) => (q === steps.length - 1 ? 0 : x));
         if (op === 'ornament') { const d2 = [], s2 = []; durs.forEach((d, q) => { if (d >= 4 && q + 1 < durs.length && Math.abs(steps[q + 1] - steps[q]) >= 2) { d2.push(d - 1, 1); s2.push(steps[q], steps[q] + Math.sign(steps[q + 1] - steps[q])); } else { d2.push(d); s2.push(steps[q]); } }); durs = d2; steps = s2; }
@@ -566,48 +721,98 @@ export class Composer {
         P.stmt++;
         let pos = k * full;
         const end = (k + 1) * full;
+        // a pickup: the statement begins a little before its downbeat, stepping or leaping up into its first note
+        const startBar = k * m.bars;
+        if (pk > 0 && startBar >= leadFrom && S.role !== 'arrival') {
+          const first = nearestChordTone(scaleStep(anchor, steps[0], P.tonic, S.mode), ch, 2);
+          const prevNote = line.length ? line[line.length - 1] : null;
+          let okPk = false;
+          if (k === 0) okPk = lead.from <= sb && lead.age >= 2 && P.melEndT <= timeOf(-pk / E) - 0.02;
+          else if (prevNote && (prevNote[1] - prevNote[0]) * E >= pk + 2) { prevNote[1] = startBar - pk / E; okPk = true; }
+          if (okPk) {
+            const kindPk = this.roll([['step', 3], ['leap', 1.5], ['same', 1]]);
+            const pp = kindPk === 'step' ? scaleStep(first, -1, P.tonic, S.mode) : kindPk === 'leap' ? nearestChordTone(first - 7, ch, 2) : first;
+            line.push([startBar - pk / E, startBar, pp, k, true]);
+          }
+        }
         for (let q = 0; q < durs.length && pos < end; q++) {
           const d = Math.min(durs[q], end - pos);
           const barF = pos / E;
           let pch = scaleStep(anchor, steps[q], P.tonic, S.mode);
           if (pos % (E / 2) === 0 || d >= 4) pch = nearestChordTone(pch, chordAt(barF), 2);
-          line.push([barF, (pos + d) / E, pch, k]);
+          line.push([barF, (pos + d) / E, pch, k, false]);
           pos += d;
         }
       }
       if (line.length) {
         const last = line[line.length - 1];
-        const breathe = !['arrival', 'build'].includes(S.role) && bars >= 4 && this.chance('motif', 'End of the phrase', 0.35, timeOf(last[0]), 'a rest before the next phrase', 'hold the last note', true);
+        // the cadence decides where the tune lands: home on the tonic when the harmony resolves, otherwise on the last chord
+        const lastCh = chordAt(last[0]);
+        if (resolving || (S.role === 'coda' && isLast)) last[2] = nearestOf(last[2], [P.tonic % 12, (P.tonic + MODES[S.mode][2]) % 12, (P.tonic + 7) % 12], [P.tonic % 12], 6);
+        else last[2] = nearestChordTone(last[2], lastCh, 4);
+        const breathe = !['arrival', 'build'].includes(S.role) && bars >= 3 && this.chance('motif', 'End of the phrase', resolving ? 0.25 : 0.4, timeOf(last[0]), 'a rest before the next phrase', 'hold the last note', true);
         last[1] = breathe ? Math.max(last[0] + 0.25, bars - 0.5) : bars;
         P.lastMelEnd = last[2];
+        P.melEndT = timeOf(last[1]);
+        // the highest note of the phrase is its climax: a touch more weight
+        let top = line[0]; for (const x of line) if (x[2] > top[2]) top = x; top[5] = 1.08;
       }
-      // the first melody instrument carries the line; others answer, join at the ends, or (in arrivals) double it
-      L.mel.forEach((l, li) => {
+      // the first melody instrument carries the line; others answer, join at the ends, play a counter-line, or (in arrivals) double it
+      melLayers.forEach((l, li) => {
+        const [s0, s1] = span(l);
         let share = 'all';
-        if (li > 0 && S.role !== 'arrival') share = l.share || (l.share = this.pick('motif', `${pretty(l.track)}: how it shares the tune`, [['answer', 2, 'takes alternate statements'], ['ending', 1.5, 'joins at the ends of phrases'], ['all', 1, 'doubles the whole line']], t0));
+        if (li > 0 && S.role !== 'arrival') share = l.share || (l.share = this.pick('motif', `${pretty(l.track)}: how it shares the tune`, [['answer', 2, 'takes alternate statements'], ['ending', 1.5, 'joins at the ends of phrases'], ['counter', 2, 'plays a slow counter-line'], ['all', 0.8, 'doubles the whole line']], timeOf(s0)));
         const lastK = line.length ? line[line.length - 1][3] : 0;
-        for (const [a, b, p, k] of line) {
+        if (share === 'counter') {
+          let prevC = null, prevM = null;
+          for (const [a, b] of chordSpan) {
+            if (a < s0 || a >= s1) continue;
+            const m = line.find((x) => x[0] <= a && x[1] > a) || line.find((x) => x[0] >= a) || line[line.length - 1];
+            if (!m) continue;
+            const ch = chordAt(a);
+            const cands = []; for (let p = m[2] - 12; p <= m[2] - 3; p++) if (ch.pcs.includes(((p % 12) + 12) % 12)) cands.push(p);
+            if (!cands.length) continue;
+            let p;
+            if (prevC === null || prevM === null) p = cands[Math.floor(cands.length / 2)];
+            else { const up = m[2] > prevM; const pref = cands.filter((x) => (up ? x <= prevC : x >= prevC)); const pool = pref.length ? pref : cands; p = pool.reduce((best, x) => (Math.abs(x - prevC) < Math.abs(best - prevC) ? x : best), pool[0]); }
+            note(l.track, a, Math.min(b, s1), Math.max(43, Math.min(96, p + l.oct)), lev('mel', a) * 0.8);
+            prevC = p; prevM = m[2];
+          }
+          return;
+        }
+        for (const [a, b, p, k, isPk, acc] of line) {
+          if (a < s0 - 0.5 || a >= s1) continue;
           if (share === 'answer' && k % 2 === 0 && line.some((x) => x[3] === k + 1)) continue;
           if (share === 'ending' && k !== lastK) continue;
-          note(l.track, a, b, Math.max(43, Math.min(96, p + l.oct)), lev('mel', a));
+          note(l.track, a, b, Math.max(43, Math.min(96, p + l.oct)), lev('mel', Math.max(0, a)) * (acc || 1) * (isPk ? 0.85 : 1));
         }
-        if (e > 0.85 && l.track === 'vln_theme') for (const [a, b, p] of line) if (p + 12 <= 98) note('vln_theme', a, b, p + 12, lev('mel', a) * 0.9);
+        if (e > 0.85 && l.track === 'vln_theme') for (const [a, b, p] of line) if (a >= s0 && a < s1 && p + 12 <= 98) note('vln_theme', a, b, p + 12, lev('mel', a) * 0.9);
       });
     }
-    // ---- percussion & sound design ----
+    // ---- percussion & sound design: accents follow the hypermeter, not every bar ----
     if (e > 0.42) {
       const pat = S.timp || (S.timp = this.pick('pattern', 'Timpani pattern', [['downbeat', 3, 'downbeats'], ['pickup', 2, 'downbeat + pickup'], ['half', beats === 4 ? 1.2 : 0, 'half notes'], ['rolls', 1, 'rolls']], t0));
       for (let b = 0; b < bars; b++) {
         const bn = bassNote(chordAt(b), 33, 44), l = Math.min(1, 0.2 + eAt(b));
-        if (pat === 'rolls') { if (b % 2 === 1) note('timp_roll', b, b + 1, bn, Math.min(1, 0.3 + eAt(b) * 0.5)); }
+        const every = eAt(b) > 0.72;
+        if (pat === 'rolls') { if (strong(b + 1)) note('timp_roll', b, b + 1, bn, Math.min(1, 0.3 + eAt(b) * 0.5)); }
         else {
-          note('timpani', b, b + 0.5, bn, l);
-          if (pat === 'half') note('timpani', b + 0.5, b + 1, bn, l * 0.8);
-          if (pat === 'pickup') note('timpani', b + (E - 1) / E, b + 1, bn, l * 0.75);
+          if (strong(b) || every) note('timpani', b, b + 0.5, bn, l);
+          if (pat === 'half' && (strong(b) || every)) note('timpani', b + 0.5, b + 1, bn, l * 0.8);
+          if (pat === 'pickup' && (strong(b + 1) || every)) note('timpani', b + (E - 1) / E, b + 1, bn, l * 0.75);
         }
       }
     }
-    if (S.role === 'arrival') for (let b = 0; b < bars; b++) ev.push({ type: 'perc', kind: 'bd_f', t: timeOf(b), lev: 0.35 + 0.3 * eAt(b) });
+    if (S.role === 'arrival') for (let b = 0; b < bars; b++) if (strong(b) || eAt(b) > 0.9) ev.push({ type: 'perc', kind: 'bd_f', t: timeOf(b), lev: 0.35 + 0.3 * eAt(b) });
+    // brass accents on the strong bars of an arrival or the top of a build
+    if (S.stabs && e > 0.65) {
+      const busy = new Set(Object.values(L).flat().map((l) => l.track));
+      const trs = ['trombones', 'horns_chords', 'trumpets'].filter((t) => !busy.has(t)).slice(0, 2);
+      for (let b = 0; b < bars; b++) if (strong(b) || (S.role === 'arrival' && eAt(b) > 0.92 && (sb + b) % 2 === 0)) {
+        const ch = chordAt(b);
+        for (const tr of trs) { const v = voicing(ch, 3, tr === 'trombones' ? 43 : tr === 'trumpets' ? 62 : 50, tr === 'trombones' ? 60 : tr === 'trumpets' ? 76 : 64, null); for (const p of v) note(tr, b, b + 1.2 / beats, p, 0.92, { stab: true }); }
+      }
+    }
     // sub pulse re-struck each bar: a whisper in songs, a wall in arrivals
     const subLev = (x) => 0.05 + 0.75 * Math.pow(Math.min(1, Math.max(0, (x - 0.3) / 0.65)), 1.5);
     if (e > 0.32) for (let b = 0; b < bars; b++) ev.push({ type: 'sub', t: timeOf(b), dur: timeOf(b + 1) - timeOf(b), midi: bassNote(ped(chordAt(b)), 24, 35), lev: subLev(eAt(b)), att: 0.01, rel: 0.3 });
@@ -616,9 +821,9 @@ export class Composer {
       if (S.role === 'arrival' || jump > 0.22 || S.role === 'shadow') ev.push({ type: 'boom', t: t0, lev: Math.min(1, 0.35 + Math.max(0, jump) + (S.role === 'arrival' ? 0.4 : 0)), root: bassNote(chords[0], 22, 33) });
       if (S.role === 'arrival') { ev.push({ type: 'perc', kind: 'crash', t: t0, lev: 1 }); if (this.rng() < 0.6) ev.push({ type: 'perc', kind: 'gong', t: t0, lev: 0.9 }); }
       if (['emerge', 'still', 'coda'].includes(S.role)) {
-        const span = timeOf(Math.min(bars, S.bars)) - t0 + S.bars * barDur * 0.5;
-        ev.push({ type: 'shimmer', t: t0, dur: span, midi: P.anchor + 17, lev: 0.008, att: 5, rel: 5 });
-        ev.push({ type: 'shimmer', t: t0 + barDur, dur: span, midi: P.anchor + 12, lev: 0.006, att: 6, rel: 5 });
+        const sp = timeOf(Math.min(bars, S.bars)) - t0 + S.bars * barDur * 0.5;
+        ev.push({ type: 'shimmer', t: t0, dur: sp, midi: P.anchor + 17, lev: 0.008, att: 5, rel: 5 });
+        ev.push({ type: 'shimmer', t: t0 + barDur, dur: sp, midi: P.anchor + 12, lev: 0.006, att: 6, rel: 5 });
       }
     }
     // transitions prepare for the section that was actually chosen next
@@ -626,6 +831,11 @@ export class Composer {
       const rb = Math.min(bars, 2);
       ev.push({ type: 'riser', t: timeOf(bars - rb), dur: timeOf(bars) - timeOf(bars - rb), lev: 0.45 });
       note('timp_roll', bars - rb, bars, midiOfPc(P.tonic, 33, 44), 0.9);
+      // the brass hold the last chord and swell into the downbeat
+      const busy = new Set(Object.values(L).flat().map((l) => l.track));
+      const tr = busy.has('horns_chords') ? 'trombones' : 'horns_chords';
+      const v = voicing(chordAt(bars - 0.01), 3, tr === 'trombones' ? 43 : 50, tr === 'trombones' ? 60 : 64, null);
+      for (const p of v) note(tr, bars - rb, bars, p, 0.95, { rise: 0.3 });
       ev.push({ type: 'perc', kind: 'cym_roll', t: timeOf(bars), lev: 0.8, lead: 3.6 });
       if (this.chance('section', 'Just before the arrival', S.role === 'breath' ? 0.8 : 0.4, timeOf(bars - 0.5), 'a moment of silence', 'drive straight in')) ev.push({ type: 'gate', t0: timeOf(bars - 0.5 / beats), t1: timeOf(bars) - 0.004 });
     } else if (isLast && nextRole === 'breath') {
@@ -636,7 +846,7 @@ export class Composer {
       this.cutPending = true;
     }
 
-    // ---- dynamics: turn levels into the engine's per-note curves ----
+    // ---- dynamics: turn levels into the engine's per-note curves, following the phrase's shape along each note ----
     const out = [];
     const ONESHOT = new Set(['piano', 'piano_low', 'piano_mel', 'vln_spic', 'vla_spic', 'vc_spic', 'basses_spic', 'harp', 'timpani', 'marimba', 'glock', 'vln_pizz', 'vc_pizz']);
     const byTrack = {};
@@ -646,17 +856,27 @@ export class Composer {
       const legato = ['vln_theme', 'vc_theme', 'horns', 'trumpets', 'oboe'].includes(track);
       for (const n of list) {
         const d0 = Math.min(1, Math.max(0.03, n.lev));
-        if (!ONESHOT.has(track)) {
-          const grow = 1 + (S.e1 - S.e0) * 0.6 * n.dur / (S.bars * barDur);
-          const e1 = Math.min(1, Math.max(0.03, n.lev * grow));
+        if (!ONESHOT.has(track) && !n.stab) {
           const k = Math.max(2, Math.floor(n.dur / 0.3));
-          n.dyn = Array.from({ length: k + 1 }, (_, i) => { const x = i / k; let v = d0 + (e1 - d0) * x; if (legato && n.dur > 1.2) v *= 0.93 + 0.11 * Math.sin(Math.PI * Math.min(1, x / 0.85)) - 0.04 * Math.max(0, (x - 0.85) / 0.15); return [n.dur * x, Math.min(1, v)]; });
+          const base = eAt(Math.max(0, n.b0));
+          n.dyn = Array.from({ length: k + 1 }, (_, i) => {
+            const x = i / k;
+            let v;
+            if (n.rise !== undefined) v = n.lev * (n.rise + (1 - n.rise) * Math.pow(x, 1.5));
+            else {
+              v = d0 * eAt(Math.max(0, n.b0 + (n.b1 - n.b0) * x)) / base;
+              if (n.swell) v *= 0.85 + 0.2 * Math.sin(Math.PI * Math.pow(x, 0.9));
+              if (n.fade) v *= 1 - 0.8 * x;
+              if (legato && n.dur > 1.2) v *= 0.93 + 0.11 * Math.sin(Math.PI * Math.min(1, x / 0.85)) - 0.04 * Math.max(0, (x - 0.85) / 0.15);
+            }
+            return [n.dur * x, Math.min(1, Math.max(0.03, v))];
+          });
         } else n.dyn = d0;
         if (legato) {
           n.legIn = list.some((m) => m.t < n.t - 0.05 && Math.abs(m.t + m.dur - n.t) < 0.06);
           n.legOut = list.some((m) => m.t > n.t + 0.05 && Math.abs(m.t - (n.t + n.dur)) < 0.06);
         }
-        delete n.lev;
+        delete n.lev; delete n.b0; delete n.b1; delete n.swell; delete n.rise; delete n.stab; delete n.fade;
         out.push(n);
       }
     }
@@ -664,14 +884,15 @@ export class Composer {
     const tEnd = timeOf(bars);
     this.lastE = e;
     S.bar = sb + bars;
+    S.phraseIdx = phI + 1;
     P.elapsed += tEnd - t0;
     this.t = tEnd;
     const decisions = this.decisions.splice(0);
     const info = {
       piece: P.no, section: S.role, key: spell(P.tonic, P.tonic), mode: S.mode, meter: P.meter.name, bpm: S.bpm, energy: e, t0, t1: tEnd,
-      palette: P.palette, cadence, sectionBar: S.bar - bars, sectionBars: S.bars,
-      chords: chords.map((c, i) => ({ t: timeOf(i * per), name: c.name, num: c.num })),
-      layers: Object.entries(L).flatMap(([r, ls]) => ls.map((l) => ({ role: r, track: l.track, desc: l.desc }))),
+      palette: P.palette, cadence, sectionBar: sb, sectionBars: S.bars, plan: S.plan, phrase: phI, phraseBars: bars, kind,
+      chords: chordSpan.map(([a, , c]) => ({ t: timeOf(a), name: c.name, num: c.num })),
+      layers: Object.entries(L).flatMap(([r, ls]) => ls.map((l) => ({ role: r, track: l.track, desc: l.desc, enter: timeOf(Math.max(0, l.from - sb)), exit: l.until === Infinity ? Infinity : timeOf(l.until - sb) }))),
       rolls: this.rolls,
     };
     return { events: out, info, decisions };
