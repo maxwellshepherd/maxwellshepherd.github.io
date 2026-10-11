@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threshold — an endless score</title>
+<meta name="description" content="A procedural film-score generator. An infinite orchestral stream in the spirit of Danna, Glass and Zimmer, composed and performed live in your browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="viz"></canvas>
+<main>
+  <header>
+    <h1>Threshold</h1>
+    <p class="sub">An endless score. Composed and performed live in your browser.</p>
+  </header>
+
+  <section id="stage">
+    <button id="play" aria-label="Play">
+      <svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z"/></svg>
+      <svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+    </button>
+    <div id="status">Press play to begin</div>
+    <div id="bar"><div id="fill"></div></div>
+  </section>
+
+  <section id="now" hidden>
+    <div class="row"><span class="label">Piece</span><span id="piece">—</span></div>
+    <div class="row big"><span id="section">—</span></div>
+    <div class="row"><span class="label">Harmony</span><span id="chord">—</span></div>
+    <div class="row"><span class="label">Tempo</span><span id="tempo">—</span></div>
+    <div id="arc"></div>
+  </section>
+
+  <section id="controls" hidden>
+    <label class="vol">Volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.85"></label>
+    <button id="next" class="ghost">Next piece</button>
+    <button id="share" class="ghost">Copy link to this stream</button>
+    <label class="lite"><input id="lite" type="checkbox"> Lite mode</label>
+  </section>
+
+  <footer>
+    <p>Every piece is generated on the fly: themes, harmony, Glass-style ostinati, orchestration and the arc from first question to discovery. Nothing is pre-recorded except the individual instrument notes.</p>
+    <p class="credits">Orchestral samples: <a href="https://versilian-studios.com/vsco-community/">VSCO 2 Community Edition</a> (CC0) · Piano: <a href="https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html">Salamander Grand Piano</a> by Alexander Holm (CC BY 3.0) · Inspired by Mychael Danna, Philip Glass and Hans Zimmer · Built by Max Shepherd with Claude.</p>
+  </footer>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
