@@ -59,14 +59,44 @@ class Player {
     this.base = this.ctx.currentTime + 0.4;
     streamStart = this.base;
     this.engine.volume.gain.setValueAtTime(+$('volume').value, this.ctx.currentTime);
-    if (this.timer) clearInterval(this.timer);
+    this.stopClock();
     this.tick();
-    this.timer = setInterval(() => this.tick(), 80);
+    this.startClock();
+  }
+  // The clock runs in a worker: browsers throttle main-thread timers in background tabs and minimised windows,
+  // which starves the scheduler. Falls back to setInterval where workers are unavailable.
+  startClock() {
+    try {
+      const url = URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 80);'], { type: 'text/javascript' }));
+      this.worker = new Worker(url); URL.revokeObjectURL(url);
+      this.worker.onmessage = () => this.tick();
+    } catch { this.worker = null; }
+    this.timer = setInterval(() => { if (!this.worker || performance.now() - this.lastTick > 400) this.tick(); }, 80);
+  }
+  stopClock() {
+    if (this.worker) { this.worker.terminate(); this.worker = null; }
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+  }
+  // After a stall (the page was frozen or throttled) the queue is overdue. Never play the backlog at once:
+  // slide the rest of the stream later so it resumes where it left off.
+  shift(dt) {
+    this.base += dt;
+    for (const e of this.queue) { if (e.t !== undefined) e.t += dt; if (e.t0 !== undefined) { e.t0 += dt; e.t1 += dt; } }
+    for (const info of this.infos) { info.t0 += dt; info.t1 += dt; for (const c of info.chords) c.t += dt; }
+    for (const d of this.decQ) d.t += dt;
   }
   tick() {
+    if (this.ticking || !this.composer) return;
+    this.ticking = true;
+    try { this._tick(); } finally { this.ticking = false; this.lastTick = performance.now(); }
+  }
+  _tick() {
     const now = this.ctx.currentTime;
-    // compose phrase by phrase, staying only ~8 s ahead of the playhead
-    while (!this.infos.length || this.infos[this.infos.length - 1].t1 + this.base < now + 8) {
+    if (this.queue.length && dispatchAt(this.queue[0]) < now - 0.1) this.shift(now + 0.1 - dispatchAt(this.queue[0]));
+    // hidden pages may be frozen outright (phones with the screen locked), so schedule much further ahead there
+    const ahead = document.hidden ? 40 : 4;
+    // compose phrase by phrase, staying a few seconds ahead of the scheduling horizon
+    while (!this.infos.length || this.infos[this.infos.length - 1].t1 < now + ahead + 6) {
       const { events, info, decisions } = this.pre && this.pre.length ? this.pre.shift() : this.composer.next();
       for (const e of events) {
         if (e.t !== undefined) e.t += this.base;
@@ -79,7 +109,8 @@ class Player {
       this.queue.sort((a, b) => dispatchAt(a) - dispatchAt(b));
       this.decQ.sort((a, b) => a.t - b.t);
     }
-    const horizon = now + (document.hidden ? 4 : 1.6);
+    if (this.queue.length && dispatchAt(this.queue[0]) < now - 0.1) this.shift(now + 0.1 - dispatchAt(this.queue[0]));
+    const horizon = now + ahead;
     let i = 0;
     while (i < this.queue.length && dispatchAt(this.queue[i]) < horizon) {
       const e = this.queue[i++];
@@ -106,7 +137,7 @@ class Player {
   async _restart(newSeed) {
     const wasRunning = this.running;
     if (!wasRunning) await this.ctx.resume();
-    clearInterval(this.timer); this.timer = null;
+    this.stopClock();
     const v = this.engine.volume.gain, now = this.ctx.currentTime;
     v.setValueAtTime(v.value, now); v.linearRampToValueAtTime(0, now + 1.2);
     await new Promise((r) => setTimeout(r, 1300));
@@ -304,6 +335,7 @@ $('play').addEventListener('click', async () => {
   if (player.running) { await player.pause(); btn.classList.remove('playing'); setStatus('Paused'); }
   else { await player.resume(); btn.classList.add('playing'); setStatus('Playing'); }
 });
+document.addEventListener('visibilitychange', () => { if (player.running) player.tick(); });   // schedule far ahead before the page is throttled
 $('volume').addEventListener('input', (e) => { if (player.engine?.volume) player.engine.volume.gain.setTargetAtTime(+e.target.value, player.ctx.currentTime, 0.05); });
 $('next').addEventListener('click', () => player.restart(Math.floor(Math.random() * 1e9)));
 $('share').addEventListener('click', async () => {
