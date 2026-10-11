@@ -3,7 +3,7 @@
 
 const db = (x) => Math.pow(10, x / 20);
 // decorative doublings dropped in Lite mode (phones / low-power machines)
-const LITE_SKIP = new Set(['flutes', 'harp', 'organ_arp', 'basses_spic', 'bassoons', 'vln_spic']);
+const LITE_SKIP = new Set(['organ_arp', 'basses_spic', 'bassoons']);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
 // ---------------------------------------------------------------------------
@@ -39,6 +39,12 @@ export const TRACKS = {
   harp:         { inst: 'harp', gain: -6, pan: -0.6, send: 0.45, depth: 7000, release: 1.0, dyn: 10, hum: 0.005 },
   timpani:      { inst: 'timp_hit', gain: 3, pan: 0.1, send: 0.5, release: 2.0, dyn: 18, hum: 0.004, offset: -2 },
   timp_roll:    { inst: 'timp_roll', gain: -17, pan: 0.1, send: 0.5, release: 0.6, dyn: 24 },
+  piano_mel:    { inst: 'piano', gain: 0, pan: 0.05, send: 0.36, depth: 9000, release: 0.6, dyn: 12, hum: 0.006 },
+  oboe:         { inst: 'ob_vib', gain: -4, pan: 0.1, send: 0.45, depth: 8000, release: 0.5, dyn: 22, legato: true },
+  marimba:      { inst: 'marimba', gain: -3, pan: 0.25, send: 0.4, release: 0.6, dyn: 14, hum: 0.006 },
+  glock:        { inst: 'glock', gain: -12, pan: -0.25, send: 0.5, depth: 9000, release: 1.2, dyn: 12, hum: 0.005 },
+  vln_pizz:     { inst: 'vln_pizz', gain: 0, pan: -0.4, send: 0.4, release: 0.3, dyn: 16, hum: 0.006 },
+  vc_pizz:      { inst: 'vc_pizz', gain: 2, pan: 0.35, send: 0.35, release: 0.4, dyn: 16, hum: 0.006 },
 };
 // synth / sound-design buses
 const SYN = {
