@@ -2,8 +2,6 @@
 // Port of the offline Python renderer used to make "Threshold".
 
 const db = (x) => Math.pow(10, x / 20);
-// decorative doublings dropped in Lite mode (phones / low-power machines)
-const LITE_SKIP = new Set(['organ_arp', 'basses_spic', 'bassoons']);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
 // ---------------------------------------------------------------------------
@@ -117,9 +115,8 @@ function makeIR(ctx, rt60, predelay, seed, densityLP) {
 
 // ---------------------------------------------------------------------------
 export class Engine {
-  constructor(ctx, { seed = 1, lite = false } = {}) {
+  constructor(ctx, { seed = 1 } = {}) {
     this.ctx = ctx;
-    this.lite = lite;
     let s = seed >>> 0 || 1;
     this.rng = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
     this.buffers = {};
@@ -256,7 +253,7 @@ export class Engine {
       return inp;
     };
     this.hall = rev(3.3, 0.028, 1, 9000, 70, 0.75 * 1.15, true);
-    this.longv = rev(this.lite ? 4.5 : 6.5, 0.06, 2, 7000, 150, 0.5, true);
+    this.longv = rev(6.5, 0.06, 2, 7000, 150, 0.5, true);
     this.room = rev(0.9, 0.006, 3, 10000, 90, 0.45, false);
     // tracks
     this.tracks = {};
@@ -325,7 +322,6 @@ export class Engine {
   note(n) {
     const tr = this.tracks[n.track];
     if (!tr || this._gated(n.t)) return;
-    if (this.lite && LITE_SKIP.has(n.track)) return;
     const cfg = tr.cfg;
     const I = this.inst[cfg.inst];
     if (!I) return;
@@ -346,7 +342,7 @@ export class Engine {
       let mn = Infinity, mx = -Infinity;
       for (const [, v] of curve) { mn = Math.min(mn, posOf(v)); mx = Math.max(mx, posOf(v)); }
       lo = Math.floor(mn); hi = Math.min(Math.ceil(mx), lo + 1);
-      if (this.lite || mx - mn < 0.25) { lo = hi = Math.round((mn + mx) / 2); }
+      if (mx - mn < 0.25) { lo = hi = Math.round((mn + mx) / 2); }
     } else {
       lo = hi = Math.round(posOf(d0 + (this.rng() - 0.5) * 0.08));
     }

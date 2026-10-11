@@ -14,7 +14,7 @@
 <main>
   <header>
     <h1>Threshold</h1>
-    <p class="sub">An endless score, composed by dice in real time and performed in your browser.</p>
+    <p class="sub">An endless score, composed by chance in real time and performed in your browser.</p>
   </header>
 
   <section id="stage">
@@ -39,20 +39,20 @@
     <label class="vol">Volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.85"></label>
     <button id="next" class="ghost">New stream</button>
     <button id="share" class="ghost">Copy link to this stream</button>
-    <label class="lite"><input id="lite" type="checkbox"> Lite mode</label>
   </section>
 
   <footer>
-    <p>Nothing here is pre-composed. Every phrase is assembled while you listen from small musical primitives: a grammar of section roles, a weighted chord graph over six modes, a motif that is repeated, sequenced, inverted and fragmented, ostinato cells with Glass-style accent groupings, and an arranger that decides who plays. Each of those choices is a roll of weighted dice, shown on the right at the moment you hear it.</p>
+    <p>Nothing here is pre-composed. Every phrase is assembled while you listen from small musical primitives: a grammar of section roles, a weighted chord graph over six modes, a motif that is repeated, sequenced, inverted and fragmented, ostinato cells with Glass-style accent groupings, and an arranger that decides who plays. Each of those choices is a weighted random pick, shown alongside the music at the moment you hear it.</p>
     <p class="credits">Orchestral samples: <a href="https://versilian-studios.com/vsco-community/">VSCO 2 Community Edition</a> (CC0). Piano: <a href="https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html">Salamander Grand Piano</a> by Alexander Holm (CC BY 3.0). Inspired by Mychael Danna, Philip Glass and Hans Zimmer.</p>
   </footer>
 </main>
 
-<aside id="dice" hidden>
-  <div class="dice-head"><span>The dice</span><span id="rolls"></span></div>
+<aside id="choices" hidden>
+  <div class="ch-head"><span class="ch-title">The composer's choices</span><span id="count"></span></div>
+  <p class="ch-intro">Each card is a moment where the composer picked between options at random, weighted toward what suits the music at that point. Cards appear as the result becomes audible.</p>
   <div id="feed"></div>
   <div class="legend">
-    <span class="lv piece">piece</span><span class="lv section">form</span><span class="lv harmony">harmony</span><span class="lv motif">melody</span><span class="lv layer">orchestra</span><span class="lv pattern">pattern</span>
+    <span class="cat piece">Piece</span><span class="cat section">Form</span><span class="cat harmony">Harmony</span><span class="cat motif">Melody</span><span class="cat layer">Instruments</span><span class="cat pattern">Rhythm</span>
   </div>
 </aside>
 </div>

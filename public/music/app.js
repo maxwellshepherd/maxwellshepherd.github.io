@@ -17,9 +17,10 @@ const FAMILY = (tr) => {
 };
 const COLORS = { str: [217, 178, 106], brs: [214, 112, 72], ww: [104, 190, 170], keys: [150, 180, 235], perc: [240, 236, 226], syn: [170, 130, 220] };
 const LEVEL_COLORS = { piece: '#f0ece2', section: '#d9b26a', harmony: '#8fb2ee', motif: '#6fd0b4', layer: '#e08a5f', pattern: '#b79be8' };
-const LEVEL_NAMES = { piece: 'piece', section: 'form', harmony: 'harmony', motif: 'melody', layer: 'orchestra', pattern: 'pattern' };
+const LEVEL_NAMES = { piece: 'piece', section: 'form', harmony: 'harmony', motif: 'melody', layer: 'instruments', pattern: 'rhythm' };
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const ROLE_NAMES = { bass: 'Bass', pad: 'Harmony', ost: 'Ostinato', mel: 'Melody' };
+const dispatchAt = (e) => (e.t ?? e.t0) - (e.lead || 0);   // cymbal rolls must start seconds before they land
 const CHIP_TRACKS = { basses: ['basses', 'vc_pad'], vc_spic: ['vc_spic', 'basses_spic'] };   // chips that drive several tracks
 
 // ---------------------------------------------------------------------------
@@ -31,27 +32,34 @@ class Player {
     this.queue = []; this.infos = []; this.base = 0; this.timer = null; this.running = false;
     this.notes = []; this.decQ = []; this.glow = {};
   }
-  async init(lite) {
+  async init() {
     this.ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' });
-    this.engine = this.newEngine(lite);
+    this.engine = this.newEngine();
     setStatus('Loading the orchestra...'); showBar(true);
     await this.engine.load(BASE, (d, n) => setFill(d / n), CORE);
     this.engine.build();
     this.restLoading = this.engine.load(BASE, (d, n) => { setFill(d / n); if (d === n) showBar(false); })
       .then(() => { this.loaded = true; }).catch((e) => { console.warn(e); this.loaded = true; showBar(false); });
   }
-  newEngine(lite) {
-    const e = new Engine(this.ctx, { seed, lite });
+  newEngine() {
+    const e = new Engine(this.ctx, { seed });
     e.onNote = (track, pitch, t, dur, dyn) => { this.notes.push({ fam: FAMILY(track), pitch, t, dur, dyn, track }); };
     return e;
   }
-  start() {
+  async start() {
     this.composer = new Composer(seed);
     this.queue = []; this.infos = []; this.decQ = [];
-    $('feed').innerHTML = '';
+    $('feed').innerHTML = ''; shownCount = 0;
+    // compose the opening before the clock starts and make sure the instruments it chose are loaded
+    this.pre = [this.composer.next(), this.composer.next()];
+    const need = new Set();
+    for (const { events } of this.pre) for (const e of events) if (e.type === 'note') need.add(TRACKS[e.track].inst);
+    const missing = [...need].filter((k) => !this.engine.inst[k]);
+    if (missing.length) { setStatus('Loading the opening...'); await this.engine.load(BASE, null, missing); }
     this.base = this.ctx.currentTime + 0.4;
-    this.running = true;
+    streamStart = this.base;
     this.engine.volume.gain.setValueAtTime(+$('volume').value, this.ctx.currentTime);
+    if (this.timer) clearInterval(this.timer);
     this.tick();
     this.timer = setInterval(() => this.tick(), 80);
   }
@@ -59,7 +67,7 @@ class Player {
     const now = this.ctx.currentTime;
     // compose phrase by phrase, staying only ~8 s ahead of the playhead
     while (!this.infos.length || this.infos[this.infos.length - 1].t1 + this.base < now + 8) {
-      const { events, info, decisions } = this.composer.next();
+      const { events, info, decisions } = this.pre && this.pre.length ? this.pre.shift() : this.composer.next();
       for (const e of events) {
         if (e.t !== undefined) e.t += this.base;
         if (e.t0 !== undefined) { e.t0 += this.base; e.t1 += this.base; }
@@ -68,37 +76,49 @@ class Player {
       info.t0 += this.base; info.t1 += this.base; for (const c of info.chords) c.t += this.base;
       this.infos.push(info);
       for (const d of decisions) { d.t += this.base; this.decQ.push(d); }
-      this.queue.sort((a, b) => (a.t ?? a.t0) - (b.t ?? b.t0));
+      this.queue.sort((a, b) => dispatchAt(a) - dispatchAt(b));
       this.decQ.sort((a, b) => a.t - b.t);
     }
     const horizon = now + (document.hidden ? 4 : 1.6);
     let i = 0;
-    while (i < this.queue.length && (this.queue[i].t ?? this.queue[i].t0) < horizon) {
+    while (i < this.queue.length && dispatchAt(this.queue[i]) < horizon) {
       const e = this.queue[i++];
       if (e.type === 'note' && !this.loaded && !this.engine.inst[TRACKS[e.track].inst]) continue;   // still loading
       try { this.engine.play(e); } catch (err) { console.warn(err); }
     }
     this.queue.splice(0, i);
-    // reveal each dice roll at the moment its consequence becomes audible
-    while (this.decQ.length && this.decQ[0].t <= now) showRoll(this.decQ.shift());
+    // reveal each choice at the moment its consequence becomes audible
+    while (this.decQ.length && this.decQ[0].t <= now) {
+      const t = this.decQ[0].t, group = [];
+      while (this.decQ.length && this.decQ[0].t - t < 0.08) group.push(this.decQ.shift());
+      showCard(group);
+    }
     while (this.infos.length > 1 && this.infos[0].t1 < now - 2) this.infos.shift();
     updateNow(this);
   }
   async pause() { this.running = false; await this.ctx.suspend(); }
   async resume() { this.running = true; await this.ctx.resume(); }
   async restart(newSeed) {
-    clearInterval(this.timer);
+    if (this.restarting) return;
+    this.restarting = true;
+    try { await this._restart(newSeed); } finally { this.restarting = false; }
+  }
+  async _restart(newSeed) {
+    const wasRunning = this.running;
+    if (!wasRunning) await this.ctx.resume();
+    clearInterval(this.timer); this.timer = null;
     const v = this.engine.volume.gain, now = this.ctx.currentTime;
     v.setValueAtTime(v.value, now); v.linearRampToValueAtTime(0, now + 1.2);
     await new Promise((r) => setTimeout(r, 1300));
     this.engine.volume.disconnect();
     seed = newSeed;
     const old = this.engine;
-    this.engine = this.newEngine($('lite').checked);
+    this.engine = this.newEngine();
     Object.assign(this.engine, { meta: old.meta, buffers: old.buffers, inst: old.inst, perc: old.perc });
     this.engine.build();
     this.notes = []; markers.length = 0; formTrail = []; lastPiece = -1; chipKey = '';
-    this.start();
+    await this.start();
+    if (!wasRunning) await this.ctx.suspend();
     history.replaceState(null, '', '?seed=' + seed);
   }
 }
@@ -112,23 +132,112 @@ function showBar(on) { $('bar').classList.toggle('on', on); }
 function setFill(x) { $('fill').style.width = (100 * x).toFixed(1) + '%'; }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-function showRoll(d) {
+const nice = (x) => String(x).replace(/\b([A-G])b(?![a-z])/g, '$1♭').replace(/([A-G])#/g, '$1♯');
+const capw = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+const strip = (x) => x.replace(/ \(.*\)$/, '');
+const SECTION_TEXT = { Emerge: 'a quiet opening', Pulse: 'a steady rhythmic texture', Song: 'the tune takes the lead', Shadow: 'a darker, tense passage', Still: 'a near-silent pause',
+  Build: 'the energy rises', Breath: 'a short pull-back before the peak', Arrival: 'the full orchestra arrives', Afterglow: 'the climax settles', Coda: 'the closing' };
+const ROLE_TEXT = { Melody: 'on the melody', Ostinato: 'with a repeating figure', Harmony: 'holding the chords', Bass: 'on the bass line' };
+const DEV_TEXT = { repeat: 'the tune repeats', sequence: 'the tune moves to a new pitch', invert: 'the tune is turned upside down', augment: 'the tune slows to half speed',
+  fragment: 'only the opening of the tune echoes', answer: 'the tune answers itself and comes home', ornament: 'the tune gains passing notes', climb: 'the tune climbs higher', return: 'the original tune returns' };
+const plural = (who) => /s$/.test(who) && !/bass$/.test(who);
+// one plain sentence per choice; the priority decides which choice leads its card
+function describe(d) {
+  const w = d.options[d.chosen].name, L = d.label;
+  let m;
+  if (L === 'Key') return [`A new piece begins in ${nice(w)}`, 100];
+  if (L === 'Modulation') return [`A new piece begins, ${w} from the last`, 100];
+  if (L === 'Mode') return [`mode: ${w}`, 20];
+  if (L === 'Tempo') return [w, 19];
+  if (L === 'Meter') return [`${w} time`, 18];
+  if (L === 'Length') return [`planned length ${w}`, 10];
+  if (L === 'Palette') return [w, 17];
+  if (L === 'Motif length') return [`a new ${w} tune`, 16];
+  if (L === 'Motif rhythm') return [`in ${w}`, 15];
+  if (L === 'Motif contour') return [`shaped as ${w === 'arch' ? 'an arch' : w === 'valley' ? 'a valley' : w}`, 14];
+  if (L === 'Next section') return [`New section: ${w}, ${SECTION_TEXT[w] || ''}`, 90];
+  if (L === 'Section length') return [`lasting ${w}`, 30];
+  if (L === 'Harmonic rhythm') return [w === 'chord per bar' ? 'a new chord every bar' : `a new chord every ${w.split(' ')[0]} bars`, 25];
+  if (L === 'Accent pattern') return [`accents grouped ${w}`, 22];
+  if (L === 'Shadow colour') return [w.startsWith('darken') ? 'the scale darkens to Phrygian' : 'the scale stays the same', 40];
+  if (L === 'Arrival mode') return [w === 'burst into major' ? 'The climax will turn to a major key' : w === 'lift to Lydian' ? 'The climax will brighten to Lydian' : 'The climax will stay in minor', 60];
+  if (L.startsWith('Key lift')) return [w.startsWith('lift') ? 'The key rises a step for a second wave' : 'the key stays put', 70];
+  if (L === 'Pedal point') return [w === 'free bass' ? 'the bass moves with the chords' : 'the bass holds one low note underneath', 28];
+  if (L === 'Opening chord' || L === 'Next chord') return [`Chord: ${nice(strip(w))}${d.feel ? ', ' + d.feel : ''}`, 40];
+  if (L === 'How the phrase ends') return [`The phrase will end ${strip(w)}`, 45];
+  if (L === 'Borrow a major dominant') return [w.startsWith('yes') ? 'a borrowed major chord leads home' : 'the chord before home keeps the mode’s colour', 35];
+  if (L === 'Timpani pattern') return [`Timpani: ${w}`, 32];
+  if (L === 'Bass accents') return [`bass accents grouped ${w}`, 12];
+  if ((m = L.match(/^(Melody|Ostinato|Harmony|Bass): who joins$/))) return [`${capw(w)} ${plural(w) ? 'join' : 'joins'} ${ROLE_TEXT[m[1]]}`, 80];
+  if (/: who drops out$/.test(L)) { const who = strip(w); return [`${capw(who)} ${plural(who) ? 'drop' : 'drops'} out`, 78]; }
+  if (/: hand over$/.test(L)) { const who = strip(w); return [`${capw(who)} ${plural(who) ? 'step' : 'steps'} aside`, 78]; }
+  if (L.endsWith(' bows out')) { const who = strip(L.replace(' bows out', '').replace(' (melody)', '')); return [`${capw(who)} ${plural(who) ? 'fade' : 'fades'} out`, 76]; }
+  if (L === 'Development') return [`Melody: ${DEV_TEXT[w] || w}`, 55];
+  if (L === 'Motif mutation') return [w.startsWith('mutate') ? 'the tune will change slightly' : '', 12];
+  if (L === 'Mutation') return [`The tune changes: ${w}`, 50];
+  if (L.endsWith('how it shares the tune')) return [`${capw(L.split(':')[0])} ${w}`, 36];
+  if (L.startsWith('Just before the arrival')) return [w.startsWith('a moment') ? 'A moment of silence before the arrival' : 'No pause before the arrival', 65];
+  if (L === 'End of the arrival') return [w.startsWith('a hard') ? 'The orchestra stops dead' : 'The climax rings on', 65];
+  if ((m = L.match(/^(.*): (subdivision|cell shape|process|accents|contrasting accents|cycle length)$/))) {
+    const who = m[1], k = m[2];
+    if (k === 'subdivision') return [`${who} in ${w}`, 11];
+    if (k === 'cell shape') return [`its figure moves ${{ up: 'upward', updown: 'up and back', pendulum: 'like a pendulum', broken: 'in broken chords', fifths: 'between two notes', rising3: 'up in threes', turn: 'in a turn', arpdown: 'downward' }[w] || w}`, 10];
+    if (k === 'process') return [w, 9];
+    if (k === 'cycle length') return [`a ${w} cycle`, 8];
+    if (k === 'accents') return [w.startsWith('a contrasting') ? 'with contrasting accents' : '', 7];
+    return [`accents grouped ${w}`, 7];
+  }
+  return [`${L}: ${w}`, 5];
+}
+let shownCount = 0, streamStart = 0;
+// one moment can hold several choices: each significant one gets its own card, and the small details
+// (an instrument's pattern, a section's length or chord pace) attach to the card they belong to
+function showCard(group) {
+  shownCount += group.length;
+  $('count').textContent = `${shownCount.toLocaleString()} choices made`;
+  const items = group.map((d) => { const [text, pri] = describe(d); return { d, text, pri, who: (d.label.match(/^(.*): (subdivision|cell shape|process|accents|contrasting accents|cycle length)$/) || [])[1] }; }).filter((x) => x.text);
+  if (!items.length) return;
+  const cards = items.filter((x) => x.pri >= 45).sort((a, b) => b.pri - a.pri).map((x) => ({ lead: x, extra: [] }));
+  const find = (pred) => cards.find((c) => pred(c.lead));
+  for (const x of items.filter((y) => y.pri < 45).sort((a, b) => b.pri - a.pri)) {
+    let home = null;
+    if (x.who) home = find((l) => l.d.level === 'layer' && l.text.toLowerCase().startsWith(x.who.toLowerCase()));
+    else if (x.d.level === 'piece' || x.d.level === 'motif' && /^Motif/.test(x.d.label)) home = find((l) => l.d.level === 'piece');
+    if (!home && !x.who && ['section', 'harmony', 'pattern'].includes(x.d.level) && !/chord/.test(x.d.label)) home = find((l) => l.d.label === 'Next section');
+    if (!home && x.d.level === 'harmony' && !/chord/.test(x.d.label)) home = find((l) => l.d.level === 'harmony');
+    if (!home && x.d.level === 'motif') home = find((l) => l.d.level === 'motif');
+    if (home) { home.extra.push(x.who && x.d.label.endsWith('subdivision') ? x.text.replace(x.who + ' ', '') : x.text); home.group = (home.group || [home.lead.d]).concat([x.d]); }
+    else cards.push({ lead: x, extra: [] });
+  }
   const feed = $('feed');
-  const el = document.createElement('div');
-  el.className = 'roll';
-  el.style.setProperty('--c', LEVEL_COLORS[d.level] || '#d9b26a');
-  const win = d.options[d.chosen];
-  const many = d.options.length > 1;
-  const odds = many ? ` <span class="q">${Math.round(win.p * 100)}%</span>` : '';
-  const bars = many ? `<div class="dist">${d.options.map((o, i) => `<i class="${i === d.chosen ? 'win' : ''}" style="flex:${o.p.toFixed(4)}" title="${esc(o.name)} ${Math.round(o.p * 100)}%"></i>`).join('')}</div>` : '';
-  const alts = many ? `<div class="alts">${d.options.map((o, i) => (i === d.chosen ? `<b>${esc(o.name)}</b>` : esc(o.name)) + ' ' + Math.round(o.p * 100) + '%').join(' · ')}</div>` : '';
-  el.innerHTML = `<div class="what"><span class="lv ${d.level}">${LEVEL_NAMES[d.level] || d.level}</span><span class="q">${esc(d.label)}</span><span class="a">${esc(win.name)}</span>${odds}</div>${bars}${alts}`;
-  feed.prepend(el);
-  while (feed.children.length > 24) feed.lastChild.remove();
-  const short = !many ? d.label : d.level === 'harmony' && d.label === 'Next chord' ? win.name : (d.label.length < 22 ? d.label.replace(/:.*$/, '') + ': ' : '') + win.name;
-  markers.push({ t: d.t, level: d.level, text: short });
+  const atTop = feed.scrollTop < 8;
+  let added = 0;
+  const secs = Math.max(0, group[0].t - streamStart), when = `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
+  for (const c of cards.slice().reverse()) {            // prepend in reverse so the most important card ends up on top
+    const ds = c.group || [c.lead.d];
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.style.setProperty('--c', LEVEL_COLORS[c.lead.d.level] || '#d9b26a');
+    const odds = ds.filter((d) => d.options.length > 1).map((d) => {
+      const bars = d.options.map((o, i) => `<i class="${i === d.chosen ? 'win' : ''}" style="flex:${o.p.toFixed(4)}"></i>`).join('');
+      const alts = d.options.map((o, i) => (i === d.chosen ? `<b>${esc(nice(o.name))} ${Math.round(o.p * 100)}%</b>` : `${esc(nice(o.name))} ${Math.round(o.p * 100)}%`)).join(' · ');
+      return `<div class="odd"><div class="q">${esc(d.label)}</div><div class="dist">${bars}</div><div class="alts">${alts}</div></div>`;
+    }).join('');
+    const extra = [...new Set(c.extra)];
+    el.innerHTML = `<div class="meta"><span>${LEVEL_NAMES[c.lead.d.level] || ''}</span><span class="when">${when}</span></div>`
+      + `<div class="main">${esc(capw(c.lead.text))}</div>`
+      + (extra.length ? `<div class="more">${esc(capw(extra.join(', ')))}</div>` : '')
+      + (odds ? `<details><summary>Choices and chances</summary><div class="odds"><div class="hdr">Chance of each option when the choice was made</div>${odds}</div></details>` : '');
+    feed.prepend(el);
+    added += el.offsetHeight + 8;
+  }
+  if (!atTop) feed.scrollTop += added;                   // keep the reader's place while they scroll back
+  while (feed.children.length > 100) feed.lastChild.remove();
+  const top = cards[0].lead.text;
+  markers.push({ t: group[0].t, level: cards[0].lead.d.level, text: capw(top.length > 40 ? top.slice(0, 38) + '…' : top) });
 }
 
+const loadingTrack = (p, tr) => !tr.startsWith('~') && TRACKS[tr] && !p.engine.inst[TRACKS[tr].inst];
 let formTrail = [], lastPiece = -1, lastSecStart = -1, chipKey = '';
 function updateNow(p) {
   const now = p.ctx.currentTime;
@@ -142,20 +251,19 @@ function updateNow(p) {
   $('chord').textContent = ch ? ch.name : '-';
   $('roman').textContent = ch ? ch.num : '';
   $('energy').style.width = (info.energy * 100).toFixed(0) + '%';
-  $('rolls').textContent = `${p.composer.rolls.toLocaleString()} rolls · seed ${seed}`;
   // form timeline: sections appear only as the grammar decides them
   if (info.piece !== lastPiece) { formTrail = []; lastPiece = info.piece; }
   if (info.sectionBar === 0 && info.t0 !== lastSecStart) { lastSecStart = info.t0; formTrail.push(info.section); }
   if (!formTrail.length) formTrail.push(info.section);
   $('form').innerHTML = formTrail.map((s, i) => `<span class="${i === formTrail.length - 1 ? 'on' : ''}">${cap(s)}</span>`).join('') + '<span class="next">?</span>';
   // orchestra map
-  const key = info.layers.map((l) => l.role + ':' + l.track).join('|');
+  const key = info.layers.map((l) => l.role + ':' + l.track + (loadingTrack(p, l.track) ? '*' : '')).join('|');
   if (key !== chipKey) {
     const prev = new Set(chipKey.split('|'));
     chipKey = key;
     const byRole = {};
     for (const l of info.layers) (byRole[l.role] = byRole[l.role] || []).push(l);
-    $('orchestra').innerHTML = ['mel', 'ost', 'pad', 'bass'].filter((r) => byRole[r]).map((r) => `<span class="role">${ROLE_NAMES[r]}</span><span class="chips">${byRole[r].map((l) => `<span class="chip${prev.has(l.role + ':' + l.track) ? '' : ' new'}" data-track="${l.track}" title="${esc(l.desc)}">${esc(l.desc.replace(/ \(.*/, ''))}</span>`).join('')}</span>`).join('');
+    $('orchestra').innerHTML = ['mel', 'ost', 'pad', 'bass'].filter((r) => byRole[r]).map((r) => `<span class="role">${ROLE_NAMES[r]}</span><span class="chips">${byRole[r].map((l) => `<span class="chip${prev.has(l.role + ':' + l.track) ? '' : ' new'}${loadingTrack(p, l.track) ? ' loading' : ''}" data-track="${l.track}" title="${esc(l.desc)}">${esc(l.desc.replace(/ \(.*/, ''))}${loadingTrack(p, l.track) ? ' (loading)' : ''}</span>`).join('')}</span>`).join('');
   }
 }
 
@@ -178,15 +286,18 @@ $('play').addEventListener('click', async () => {
     btn.disabled = true;
     unlockMobileAudio(); mediaSession();
     try {
-      await player.init($('lite').checked);
+      await player.init();
       await player.ctx.resume();
-      player.start();
+      await player.start();
+      player.running = true;
       setStatus('Playing');
       btn.disabled = false; btn.classList.add('playing');
-      $('now').hidden = false; $('controls').hidden = false; $('dice').hidden = false;
+      $('now').hidden = false; $('controls').hidden = false; $('choices').hidden = false;
       history.replaceState(null, '', '?seed=' + seed);
     } catch (e) {
       console.error(e); setStatus('Could not start audio: ' + e.message); btn.disabled = false;
+      try { if (player.ctx) player.ctx.close(); } catch {}
+      player.ctx = null; player.engine = null;
     }
     return;
   }
@@ -200,10 +311,9 @@ $('share').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(url); $('share').textContent = 'Link copied'; } catch { $('share').textContent = url; }
   setTimeout(() => ($('share').textContent = 'Copy link to this stream'), 2500);
 });
-if (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || (navigator.hardwareConcurrency || 8) <= 4) $('lite').checked = true;
 
 // ---------------------------------------------------------------------------
-// visualiser: a slow-scrolling score of light, annotated with the dice that made it
+// visualiser: a slow-scrolling score of light, annotated with the choices that made it
 // ---------------------------------------------------------------------------
 const cv = $('viz'), g2 = cv.getContext('2d');
 const mk = $('marks'), g3 = mk.getContext('2d');     // crisp overlay (cleared every frame) for labels and the playhead
@@ -240,7 +350,7 @@ function draw() {
     if (on && now - n.t < 0.12) player.glow[n.track] = Math.min(1, (player.glow[n.track] || 0) + 0.3 * (0.4 + n.dyn));
   }
   g2.globalCompositeOperation = 'source-over';
-  // dice markers drift left with the music they caused (overlay, redrawn crisply each frame)
+  // choice markers drift left with the music they caused (overlay, redrawn crisply each frame)
   g3.clearRect(0, 0, W, H);
   while (markers.length && markers[0].t < now - span) markers.shift();
   g3.font = '11px "Iowan Old Style", Georgia, serif';
@@ -290,20 +400,20 @@ draw();
 window.renderOffline = async (seconds, renderSeed, opts = {}) => {
   const sr = 44100;
   const octx = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
-  const eng = new Engine(octx, { seed: renderSeed, lite: !!opts.lite });
+  const eng = new Engine(octx, { seed: renderSeed });
   await eng.load(BASE, null);
   eng.build();
   const comp = new Composer(renderSeed);
   const evs = [], infos = [];
   let tEnd = 0, ndec = 0;
   while (tEnd < (opts.from || 0) + seconds + 2) { const { events, info, decisions } = comp.next(); evs.push(...events); infos.push(info); ndec += decisions.length; tEnd = info.t1; }
-  evs.sort((a, b) => (a.t ?? a.t0) - (b.t ?? b.t0));
+  evs.sort((a, b) => dispatchAt(a) - dispatchAt(b));
   const solo = opts.solo ? new Set(opts.solo) : null;
   const noteTimes = [];
   let idx = 0;
   const step = 2;
   const feed = (until) => {
-    while (idx < evs.length && (evs[idx].t ?? evs[idx].t0) < until) {
+    while (idx < evs.length && dispatchAt(evs[idx]) < until) {
       const e = evs[idx++];
       if (solo && !(e.type === 'note' ? solo.has(e.track) : solo.has('~' + e.type))) continue;
       if (solo && e.type === 'note') noteTimes.push(e.t);
