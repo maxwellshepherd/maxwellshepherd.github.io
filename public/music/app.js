@@ -147,7 +147,7 @@ class Player {
     this.engine = this.newEngine();
     Object.assign(this.engine, { meta: old.meta, buffers: old.buffers, inst: old.inst, perc: old.perc });
     this.engine.build();
-    this.notes = []; markers.length = 0; formTrail = []; lastPiece = -1; chipKey = '';
+    this.notes = []; markers.length = 0; formKey = ''; chipKey = '';
     await this.start();
     if (!wasRunning) await this.ctx.suspend();
     history.replaceState(null, '', '?seed=' + seed);
@@ -188,6 +188,19 @@ function describe(d) {
   if (L === 'Motif contour') return [`shaped as ${w === 'arch' ? 'an arch' : w === 'valley' ? 'a valley' : w}`, 14];
   if (L === 'Next section') return [`New section: ${w}, ${SECTION_TEXT[w] || ''}`, 90];
   if (L === 'Section length') return [`lasting ${w}`, 30];
+  if (L === 'Arc') return [`The piece is planned as ${w}`, 88];
+  if (L === 'Theme') return [w, 85];
+  if (L === 'Theme harmony: question') return [`a theme over ${w}`, 13];
+  if (L === 'Theme harmony: answer') return [`answered by ${w}`, 12];
+  if (L === 'Theme: the answer begins') return [`its answer begins ${w}`, 11];
+  if (L === 'Theme: the last note') return [`its last note ${w}`, 10];
+  if (L === 'Theme doubling') return [`The theme is doubled by ${w}`, 70];
+  if ((m = L.match(/^Into the (arrival|build|quiet)$/))) return [/plain change|clean change/.test(w) ? '' : `Into the ${m[1] === 'quiet' ? 'quiet' : m[1]}: ${w}`, 62];
+  if (L === 'Brass accents') return [`brass: ${w}`, 31];
+  if (L === 'Ensemble drums') return [w.startsWith('low drums') ? w : '', 30];
+  if (L === 'Chord colour') return [w === 'keep it diatonic' ? '' : `colour: ${w}`, 42];
+  if (L === 'Final chord') return [w.startsWith('a major') ? 'The piece will end on a major chord' : '', 44];
+  if (L === 'Bass line') return ['the bass walks by step', 20];
   if (L === 'Phrase plan') return [`in phrases of ${w}`, 29];
   if (L === 'Melody pickup') return [w.startsWith('the tune') ? '' : `the tune begins with ${w}`, 24];
   if (L === 'Brass on the strong bars') return [w === 'accented chords' ? 'brass accents on the strong bars' : '', 23];
@@ -239,7 +252,7 @@ function showCard(group) {
   for (const x of items.filter((y) => y.pri < 45).sort((a, b) => b.pri - a.pri)) {
     let home = null;
     if (x.who) home = find((l) => l.d.level === 'layer' && l.text.toLowerCase().startsWith(x.who.toLowerCase()));
-    else if (x.d.level === 'piece' || x.d.level === 'motif' && /^Motif/.test(x.d.label)) home = find((l) => l.d.level === 'piece');
+    else if (x.d.level === 'piece' || x.d.level === 'motif' && /^(Motif|Theme[ :])/.test(x.d.label)) home = find((l) => l.d.level === 'piece');
     if (!home && !x.who && (['section', 'harmony', 'pattern'].includes(x.d.level) || x.d.label === 'Melody pickup') && !/chord/.test(x.d.label)) home = find((l) => l.d.label === 'Next section');
     if (!home && x.d.level === 'harmony' && !/chord/.test(x.d.label)) home = find((l) => l.d.level === 'harmony');
     if (!home && x.d.level === 'motif') home = find((l) => l.d.level === 'motif');
@@ -275,24 +288,26 @@ function showCard(group) {
 }
 
 const loadingTrack = (p, tr) => !tr.startsWith('~') && TRACKS[tr] && !p.engine.inst[TRACKS[tr].inst];
-let formTrail = [], lastPiece = -1, lastSecStart = -1, chipKey = '';
+let formKey = '', chipKey = '';
 function updateNow(p) {
   const now = p.ctx.currentTime;
   const info = p.infos.find((x) => now >= x.t0 && now < x.t1) || p.infos[0];
   if (!info) return;
   $('piece').textContent = `No. ${info.piece} · ${info.key} ${cap(info.mode)} · ${info.meter} · ${info.bpm} bpm · ${info.palette}`;
   $('section').textContent = cap(info.section);
-  $('secprog').textContent = `bar ${info.sectionBar + 1} of ${info.sectionBars} · phrase ${info.phrase + 1} of ${info.plan.length}${info.kind === 'ante' ? ', a question' : info.kind === 'cons' ? ', its answer' : ''}`;
+  $('secprog').textContent = `bar ${info.sectionBar + 1} of ${info.sectionBars} · phrase ${info.phrase + 1} of ${info.plan.length}${info.theme ? ', the theme' : info.kind === 'ante' ? ', a question' : info.kind === 'cons' ? ', its answer' : ''}`;
   let ch = info.chords[0];
   for (const c of info.chords) if (c.t <= now) ch = c;
   $('chord').textContent = ch ? ch.name : '-';
   $('roman').textContent = ch ? ch.num : '';
   $('energy').style.width = (info.energy * 100).toFixed(0) + '%';
-  // form timeline: sections appear only as the grammar decides them
-  if (info.piece !== lastPiece) { formTrail = []; lastPiece = info.piece; }
-  if (info.sectionBar === 0 && info.t0 !== lastSecStart) { lastSecStart = info.t0; formTrail.push(info.section); }
-  if (!formTrail.length) formTrail.push(info.section);
-  $('form').innerHTML = formTrail.map((s, i) => `<span class="${i === formTrail.length - 1 ? 'on' : ''}">${cap(s)}</span>`).join('') + '<span class="next">?</span>';
+  // form timeline: the whole arc is planned when the piece begins
+  const fk = info.piece + ':' + info.secIdx;
+  if (fk !== formKey) {
+    formKey = fk;
+    $('form').innerHTML = info.form.map((s, i) => `<span class="${i < info.secIdx ? 'done' : i === info.secIdx ? 'on' : 'next'}">${cap(s)}</span>`).join('');
+    $('form').title = 'Planned as ' + info.arc;
+  }
   // orchestra map
   const heard = info.layers.filter((l) => now >= l.enter - 0.05 && now < l.exit);
   const key = heard.map((l) => l.role + ':' + l.track + (loadingTrack(p, l.track) ? '*' : '')).join('|');
@@ -480,6 +495,25 @@ window.renderOffline = async (seconds, renderSeed, opts = {}) => {
   window.__wav = new Uint8Array(wav.buffer);
   return { bytes: window.__wav.length, elapsed, peak, blocks, decisions: ndec, events: evs.length, noteTimes,
     infos: infos.map((i) => ({ name: i.section, piece: i.piece, key: i.key, mode: i.mode, meter: i.meter, bpm: i.bpm, t0: i.t0, t1: i.t1, energy: i.energy, chords: i.chords })) };
+};
+// render an explicit list of events (used by the instrument balance test)
+window.renderEvents = async (events, seconds) => {
+  const sr = 44100;
+  const octx = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
+  const eng = new Engine(octx, { seed: 1 });
+  await eng.load(BASE, null);
+  eng.build();
+  for (const e of events.slice().sort((a, b) => dispatchAt(a) - dispatchAt(b))) eng.play(e);
+  const buf = await octx.startRendering();
+  const L = buf.getChannelData(0), R = buf.getChannelData(1), n = L.length;
+  const wav = new DataView(new ArrayBuffer(44 + n * 4));
+  const ws = (o, s) => { for (let i = 0; i < s.length; i++) wav.setUint8(o + i, s.charCodeAt(i)); };
+  ws(0, 'RIFF'); wav.setUint32(4, 36 + n * 4, true); ws(8, 'WAVE'); ws(12, 'fmt '); wav.setUint32(16, 16, true);
+  wav.setUint16(20, 1, true); wav.setUint16(22, 2, true); wav.setUint32(24, sr, true); wav.setUint32(28, sr * 4, true);
+  wav.setUint16(32, 4, true); wav.setUint16(34, 16, true); ws(36, 'data'); wav.setUint32(40, n * 4, true);
+  for (let i = 0; i < n; i++) { wav.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true); wav.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true); }
+  window.__wav = new Uint8Array(wav.buffer);
+  return { bytes: window.__wav.length };
 };
 window.wavChunk = (i, size) => {
   const s = window.__wav.subarray(i * size, (i + 1) * size);

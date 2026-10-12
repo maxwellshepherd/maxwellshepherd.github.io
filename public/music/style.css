@@ -57,6 +57,7 @@ footer a { color: var(--fg); text-decoration-color: rgba(233, 228, 216, 0.35); }
 #form span { padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; color: rgba(233, 228, 216, 0.5); }
 #form span.on { background: var(--gold); color: var(--bg); border-color: var(--gold); text-shadow: none; }
 #form span.next { border-style: dashed; color: var(--dim); }
+#form span.done { color: rgba(233, 228, 216, 0.38); }
 #orchestra { display: grid; grid-template-columns: 88px 1fr; gap: 6px 14px; margin-top: 14px; font-size: 13px; }
 #orchestra .role { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; padding-top: 3px; }
 #orchestra .chips { display: flex; flex-wrap: wrap; gap: 5px; }

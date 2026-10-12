@@ -8,39 +8,42 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 // mix layout: one entry per performer track (gain dB, pan, sends, sampler behaviour)
 // ---------------------------------------------------------------------------
 export const TRACKS = {
-  piano:        { inst: 'piano', gain: 0, pan: -0.05, send: 0.32, depth: 9000, release: 0.45, dyn: 12, hum: 0.006 },
+  piano:        { inst: 'piano', gain: -2, pan: -0.05, send: 0.32, depth: 9000, release: 0.45, dyn: 12, hum: 0.006 },
   piano_low:    { inst: 'piano', gain: -4, pan: -0.1, send: 0.38, release: 0.9, dyn: 12, hum: 0.008, offset: -3 },
   vln_theme:    { inst: 'vln_sus', gain: 2, pan: -0.45, send: 0.38, release: 0.7, dyn: 24, legato: true },
   vln_pad:      { inst: 'vln_sus', gain: -3, pan: -0.3, send: 0.42, release: 0.9, dyn: 26 },
-  vln_high:     { inst: 'vln_sus', gain: -6, pan: -0.15, send: 0.55, long: 0.6, release: 1.4, dyn: 26 },
+  vln_high:     { inst: 'vln_sus', gain: -5, pan: -0.15, send: 0.55, long: 0.6, release: 1.4, dyn: 26 },
   vln_trem:     { inst: 'vln_trem', gain: -6, pan: -0.35, send: 0.5, release: 0.8, dyn: 22 },
   vln_spic:     { inst: 'vln_spic', gain: 1, pan: -0.5, send: 0.33, depth: 7000, release: 0.12, dyn: 18, hum: 0.006, offset: 42 },
   vla_pad:      { inst: 'vla_sus', gain: -1, pan: 0.15, send: 0.42, release: 0.9, dyn: 26 },
   vla_spic:     { inst: 'vla_spic', gain: 2, pan: 0.2, send: 0.33, depth: 7000, release: 0.12, dyn: 18, hum: 0.006, offset: 19 },
-  vc_pad:       { inst: 'vc_sus', gain: 4, pan: 0.35, send: 0.4, release: 1.0, dyn: 26 },
+  vc_pad:       { inst: 'vc_sus', gain: 2, pan: 0.35, send: 0.4, release: 1.0, dyn: 26 },
   vc_theme:     { inst: 'vc_sus', gain: 0, pan: 0.35, send: 0.38, release: 0.7, dyn: 24, legato: true },
   vc_spic:      { inst: 'vc_spic', gain: 1, pan: 0.45, send: 0.3, release: 0.15, dyn: 18, hum: 0.006, offset: 15 },
-  basses:       { inst: 'cb_sus', gain: 7, pan: 0.45, send: 0.3, release: 1.0, dyn: 24 },
+  basses:       { inst: 'cb_sus', gain: 5, pan: 0.45, send: 0.3, release: 1.0, dyn: 24 },
   basses_spic:  { inst: 'cb_spic', gain: 3, pan: 0.6, send: 0.28, release: 0.2, dyn: 18, offset: 47 },
   horns:        { inst: 'hn_sus', gain: 2, pan: -0.35, send: 0.6, depth: 6000, release: 0.8, dyn: 26, legato: true },
   horns_chords: { inst: 'hn_sus', gain: -2, pan: -0.2, send: 0.6, depth: 6000, release: 0.9, dyn: 26 },
-  trumpets:     { inst: 'tpt_sus', gain: -3, pan: 0.15, send: 0.55, depth: 8000, release: 0.7, dyn: 26, legato: true },
+  trumpets:     { inst: 'tpt_sus', gain: -0.5, pan: 0.15, send: 0.55, depth: 8000, release: 0.7, dyn: 26, legato: true },
   trombones:    { inst: 'tbn_sus', gain: -2, pan: 0.35, send: 0.55, depth: 6000, release: 0.8, dyn: 26 },
-  tuba:         { inst: 'tba_sus', gain: 2, pan: 0.4, send: 0.45, depth: 6000, release: 0.8, dyn: 26 },
+  tuba:         { inst: 'tba_sus', gain: 0, pan: 0.4, send: 0.45, depth: 6000, release: 0.8, dyn: 26 },
   organ:        { inst: 'org_loud_man', gain: -8, pan: 0, send: 0.45, release: 1.2, dyn: 20 },
   organ_soft:   { inst: 'org_q_man', gain: -6, pan: 0, send: 0.5, release: 1.2, dyn: 18 },
   organ_arp:    { inst: 'org_loud_man', gain: -8, pan: 0.05, send: 0.45, depth: 6000, release: 0.25, dyn: 16, hum: 0, offset: 10 },
   organ_pedal:  { inst: 'org_loud_ped', gain: -1, pan: 0, send: 0.4, release: 1.5, dyn: 18 },
-  clarinets:    { inst: 'cl_sus', gain: -5, pan: -0.1, send: 0.42, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 25 },
-  flutes:       { inst: 'fl_sus', gain: -13, pan: -0.2, send: 0.45, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 8 },
-  bassoons:     { inst: 'bsn_sus', gain: -6, pan: 0.15, send: 0.42, release: 0.6, dyn: 22 },
-  harp:         { inst: 'harp', gain: -6, pan: -0.6, send: 0.45, depth: 7000, release: 1.0, dyn: 10, hum: 0.005 },
-  timpani:      { inst: 'timp_hit', gain: 3, pan: 0.1, send: 0.5, release: 2.0, dyn: 18, hum: 0.004, offset: -2 },
-  timp_roll:    { inst: 'timp_roll', gain: -17, pan: 0.1, send: 0.5, release: 0.6, dyn: 24 },
-  piano_mel:    { inst: 'piano', gain: 0, pan: 0.05, send: 0.36, depth: 9000, release: 0.6, dyn: 12, hum: 0.006 },
-  oboe:         { inst: 'ob_vib', gain: -4, pan: 0.1, send: 0.45, depth: 8000, release: 0.5, dyn: 22, legato: true },
-  marimba:      { inst: 'marimba', gain: -3, pan: 0.25, send: 0.4, release: 0.6, dyn: 14, hum: 0.006 },
-  glock:        { inst: 'glock', gain: -12, pan: -0.25, send: 0.5, depth: 9000, release: 1.2, dyn: 12, hum: 0.005 },
+  clarinets:    { inst: 'cl_sus', gain: -1, pan: -0.1, send: 0.42, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 25 },
+  flutes:       { inst: 'fl_sus', gain: -8, pan: -0.2, send: 0.45, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 8 },
+  bassoons:     { inst: 'bsn_sus', gain: 0, pan: 0.15, send: 0.42, release: 0.6, dyn: 22, legato: true },
+  horns_stac:   { inst: 'hn_stac', gain: -4, pan: -0.3, send: 0.6, depth: 6000, release: 0.35, dyn: 20, hum: 0.006 },
+  tbn_stac:     { inst: 'tbn_stac', gain: 2, pan: 0.35, send: 0.55, depth: 6000, release: 0.35, dyn: 20, hum: 0.006 },
+  tpt_stac:     { inst: 'tpt_stac', gain: -3, pan: 0.15, send: 0.55, depth: 8000, release: 0.3, dyn: 20, hum: 0.006 },
+  harp:         { inst: 'harp', gain: 2, pan: -0.6, send: 0.45, depth: 7000, release: 1.0, dyn: 10, hum: 0.005 },
+  timpani:      { inst: 'timp_hit', gain: 6, pan: 0.1, send: 0.5, release: 2.0, dyn: 18, hum: 0.004, offset: -2 },
+  timp_roll:    { inst: 'timp_roll', gain: -22, pan: 0.1, send: 0.5, release: 0.6, dyn: 24 },
+  piano_mel:    { inst: 'piano', gain: 1, pan: 0.05, send: 0.36, depth: 9000, release: 0.6, dyn: 12, hum: 0.006 },
+  oboe:         { inst: 'ob_vib', gain: -2.5, pan: 0.1, send: 0.45, depth: 8000, release: 0.5, dyn: 22, legato: true },
+  marimba:      { inst: 'marimba', gain: 4, pan: 0.25, send: 0.4, release: 0.6, dyn: 14, hum: 0.006 },
+  glock:        { inst: 'glock', gain: 2, pan: -0.25, send: 0.5, depth: 9000, release: 1.2, dyn: 12, hum: 0.005 },
   vln_pizz:     { inst: 'vln_pizz', gain: 0, pan: -0.4, send: 0.4, release: 0.3, dyn: 16, hum: 0.006 },
   vc_pizz:      { inst: 'vc_pizz', gain: 2, pan: 0.35, send: 0.35, release: 0.4, dyn: 16, hum: 0.006 },
 };
@@ -53,6 +56,9 @@ const SYN = {
   shimmer: { gain: -4, send: 0.2, long: 0.9, hp: 300, nogate: true },
   perc:    { gain: -6, send: 0.5, long: 0.3 },
 };
+
+// per-sample trims for the percussion one-shots (the tenor drums are recorded far quieter than the bass drum)
+const PERC_GAIN = { drum_f: 2.2, drum_p: 2, drum_hi: 2 };
 
 function gauss(rng) {
   let u = 0, v = 0;
@@ -188,7 +194,7 @@ export class Engine {
     // master tonal curve (match-EQ toward the reference + body + air control)
     const eq = [
       ['highpass', 24, 0.7, 0], ['lowshelf', 110, 0, 3], ['peaking', 85, 0.9, 2.5], ['peaking', 170, 0.7, 1],
-      ['peaking', 320, 0.8, -1.5], ['highshelf', 4500, 0, -2.5],
+      ['peaking', 320, 0.8, -1.5], ['peaking', 1500, 0.8, 1.5], ['highshelf', 4500, 0, -1.5],
     ].map(([type, f, q, g]) => { const b = c.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q) b.Q.value = q; b.gain.value = g; return b; });
     this.masterIn = c.createGain();
     this.masterIn.channelCount = 2; this.masterIn.channelCountMode = 'explicit';
@@ -223,7 +229,7 @@ export class Engine {
     const sum = c.createGain();
     glueOut.connect(sum); glueOut.connect(par); parOut.connect(parG); parG.connect(sum);
     const [lim, limOut] = comp(-3, 20, 0, 0.002, 0.12);
-    this.makeup = c.createGain(); this.makeup.gain.value = db(2.5);
+    this.makeup = c.createGain(); this.makeup.gain.value = db(4);
     sum.connect(lim); limOut.connect(this.makeup);
     // final safety: transparent below -3 dBFS, soft-saturates anything above (never clips). Handles +-2 input.
     const clip = c.createWaveShaper(); const N = 8192, cv = new Float32Array(N);
@@ -480,8 +486,10 @@ export class Engine {
   }
 
   percHit(kind, t, level) {
+    if (this.perc[kind + '_2']) { this.rr[kind] = (this.rr[kind] || 0) + 1; if (this.rr[kind] % 2) kind = kind + '_2'; }   // round-robin hits
     const r = this.perc[kind];
     if (!r) return;
+    level *= PERC_GAIN[kind.replace(/_2$/, '')] || 1;
     const c = this.ctx;
     let ts = t;
     if (kind === 'cym_roll') ts = t - (r.peak || 0);          // roll lands on its target
