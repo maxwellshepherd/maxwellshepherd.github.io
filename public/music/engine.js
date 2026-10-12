@@ -30,7 +30,7 @@ export const TRACKS = {
   organ:        { inst: 'org_loud_man', gain: -8, pan: 0, send: 0.45, release: 1.2, dyn: 20 },
   organ_soft:   { inst: 'org_q_man', gain: -6, pan: 0, send: 0.5, release: 1.2, dyn: 18 },
   organ_arp:    { inst: 'org_loud_man', gain: -8, pan: 0.05, send: 0.45, depth: 6000, release: 0.25, dyn: 16, hum: 0, offset: 10 },
-  organ_pedal:  { inst: 'org_loud_ped', gain: -1, pan: 0, send: 0.4, release: 1.5, dyn: 18 },
+  organ_pedal:  { inst: 'org_loud_ped', gain: -1, pan: 0, send: 0.4, release: 1.5, dyn: 18, lp: 1800 },   // the pedal samples carry a 4 kHz whistle
   clarinets:    { inst: 'cl_sus', gain: -1, pan: -0.1, send: 0.42, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 25 },
   flutes:       { inst: 'fl_sus', gain: -8, pan: -0.2, send: 0.45, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 8 },
   bassoons:     { inst: 'bsn_sus', gain: 0, pan: 0.15, send: 0.42, release: 0.6, dyn: 22, legato: true },
@@ -194,7 +194,7 @@ export class Engine {
     // master tonal curve (match-EQ toward the reference + body + air control)
     const eq = [
       ['highpass', 24, 0.7, 0], ['lowshelf', 110, 0, 3], ['peaking', 85, 0.9, 2.5], ['peaking', 170, 0.7, 1],
-      ['peaking', 320, 0.8, -1.5], ['peaking', 1500, 0.8, 1.5], ['highshelf', 4500, 0, -1.5],
+      ['peaking', 320, 0.8, -1.5], ['peaking', 1500, 0.8, 1.5], ['highshelf', 4500, 0, 0], ['highshelf', 9000, 0, 2],
     ].map(([type, f, q, g]) => { const b = c.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q) b.Q.value = q; b.gain.value = g; return b; });
     this.masterIn = c.createGain();
     this.masterIn.channelCount = 2; this.masterIn.channelCountMode = 'explicit';
@@ -353,8 +353,14 @@ export class Engine {
       lo = hi = Math.round(posOf(d0 + (this.rng() - 0.5) * 0.08));
     }
     const dur = n.dur + (cfg.legato ? 0.12 : 0);
-    const regLo = this._pick(cfg.inst, n.pitch, I.layers[lo]);
+    let regLo = this._pick(cfg.inst, n.pitch, I.layers[lo]);
     if (!regLo) return;
+    // a dynamic layer that does not reach this pitch would stretch its nearest sample: borrow the layer that does
+    if (Math.abs(regLo.root - n.pitch) > 4) {
+      let bl = lo, bd = Math.abs(regLo.root - n.pitch);
+      for (let li = 0; li < nl; li++) { const r = this._pick(cfg.inst, n.pitch, I.layers[li]); if (r && Math.abs(r.root - n.pitch) < bd - 0.5) { bd = Math.abs(r.root - n.pitch); bl = li; } }
+      if (bl !== lo) { lo = hi = bl; regLo = this._pick(cfg.inst, n.pitch, I.layers[bl]); }
+    }
     // timing compensation
     if (sustain) {
       let att = regLo.attack || 0;

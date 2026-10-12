@@ -120,14 +120,21 @@ const CHORD_GRAPH = {        // degree -> {degree: weight}; film-minor bias towa
   1: { 4: 3, 6: 1.5, 0: 1, 3: 1 },
   2: { 6: 2.5, 5: 2.5, 3: 2, 0: 1 },
   3: { 0: 2.5, 4: 2.5, 5: 1.5, 6: 2, 1: 0.5 },
-  4: { 0: 3.5, 5: 2.5, 3: 1, 2: 0.7 },
+  4: { 0: 3.5, 5: 2.5, 3: 0.4, 2: 0.7 },
   5: { 6: 3, 3: 2.5, 2: 1.5, 0: 1.5, 4: 1 },
   6: { 0: 3.5, 2: 2, 5: 1.5, 3: 1 },
 };
+// each mode leans on its signature chords: Lydian's major II, Mixolydian's flat VII, Dorian's major IV,
+// Phrygian's flat II, Aeolian's VI-VII-i
+const MODE_FLAVOR = {
+  lydian: { 0: { 1: 5 }, 5: { 1: 2.5 }, 1: { 0: 4, 4: 1.5 } }, mixolydian: { 0: { 6: 4 }, 6: { 0: 3.5, 3: 1.5 }, 3: { 6: 2 } }, dorian: { 0: { 3: 4 }, 3: { 0: 3.5 }, 1: { 3: 2 } },
+  phrygian: { 0: { 1: 5 }, 5: { 1: 2.5 }, 1: { 0: 4.5 } }, aeolian: { 5: { 6: 3.5 }, 6: { 0: 4 } }, ionian: { 0: { 1: 2.5 }, 5: { 1: 3 }, 3: { 4: 3 }, 1: { 4: 3.5 } },
+};
+const graphFor = (mode, cur) => { const g = { ...CHORD_GRAPH[cur] }; const f = (MODE_FLAVOR[mode] || {})[cur]; if (f) for (const [k, w] of Object.entries(f)) g[k] = Math.max(g[k] || 0, w); return g; };
 const ROLES = {
   emerge:    { e: [0.1, 0.2],  len: [[4, 2], [6, 2], [8, 1]], hr: [[2, 2], [1, 1]] },
   pulse:     { e: [0.28, 0.38], len: [[8, 3], [12, 1]], hr: [[2, 3], [1, 1]] },
-  song:      { e: [0.34, 0.5], len: [[8, 2], [12, 1], [16, 1]], hr: [[2, 3], [1, 2]] },
+  song:      { e: [0.3, 0.45], len: [[8, 2], [12, 1], [16, 1]], hr: [[2, 3], [1, 2]] },
   shadow:    { e: [0.3, 0.44], len: [[6, 1], [8, 2]], hr: [[1, 2], [2, 1]] },
   still:     { e: [0.18, 0.24], len: [[4, 1], [8, 1]], hr: [[2, 2], [4, 1]] },
   build:     { e: [0.45, 0.8], len: [[8, 2], [12, 2], [16, 1]], hr: [[1, 2], [2, 2]] },
@@ -219,14 +226,25 @@ const PHASE_LENGTHS = { 8: [3, 5], 6: [4, 5], 16: [3, 5, 6, 7], 12: [5, 7], 9: [
 
 // instruments per arranger role: [track, weight, minEnergy, maxEnergy, register]
 const CAND = {
-  pad: [['vla_pad', 3, 0.15, 1, [53, 66]], ['vln_pad', 2.5, 0.3, 1, [69, 82]], ['horns_chords', 2, 0.3, 1, [48, 62]], ['organ_soft', 1.6, 0.1, 0.6, [57, 70]],
-    ['organ', 1.4, 0.5, 1, [62, 74]], ['trombones', 1.4, 0.6, 1, [41, 62]], ['vln_trem', 1, 0.28, 0.75, [67, 79]], ['vln_high', 1.6, 0, 0.32, [79, 91]], ['~pad', 1.2, 0.1, 1, [50, 64]]],
-  ost: [['piano', 3.2, 0.1, 1, 60], ['clarinets', 2, 0.25, 1, 62], ['vla_spic', 2, 0.36, 1, 57], ['vln_spic', 1.6, 0.48, 1, 69], ['harp', 1.8, 0.1, 1, 62],
-    ['marimba', 1.6, 0.15, 0.9, 60], ['flutes', 1.1, 0.55, 1, 74], ['organ_arp', 1, 0.62, 1, 74], ['glock', 0.8, 0.1, 0.6, 79], ['vln_pizz', 1.1, 0.15, 0.55, 62]],
+  pad: [['vla_pad', 3, 0.15, 1, [53, 66]], ['vln_pad', 2.5, 0.3, 1, [69, 82]], ['horns_chords', 2, 0.3, 1, [46, 60]], ['organ_soft', 1.6, 0.1, 0.6, [57, 70]],
+    ['organ', 1.4, 0.5, 1, [62, 74]], ['trombones', 1.4, 0.6, 1, [41, 62]], ['vln_trem', 1, 0.28, 0.75, [67, 79]], ['vln_high', 1.6, 0, 0.32, [76, 88]], ['~pad', 1.2, 0.1, 1, [50, 64]]],
+  ost: [['piano', 3.2, 0.1, 1, 57], ['clarinets', 2, 0.25, 1, 57], ['vla_spic', 2, 0.36, 1, 55], ['vln_spic', 1.6, 0.48, 1, 66], ['harp', 1.8, 0.1, 1, 57],
+    ['marimba', 1.6, 0.15, 0.9, 57], ['flutes', 1.1, 0.55, 1, 74], ['organ_arp', 1, 0.62, 1, 74], ['glock', 0.8, 0.1, 0.6, 79], ['vln_pizz', 1.1, 0.15, 0.55, 62]],
   mel: [['vln_theme', 3, 0.2, 1, 0], ['vc_theme', 2, 0.2, 1, -12], ['horns', 2, 0.42, 1, -12], ['trumpets', 1, 0.76, 1, 0], ['oboe', 1.6, 0.15, 0.62, 0],
-    ['piano_mel', 1.4, 0, 0.45, 0], ['flutes', 0.9, 0.3, 0.8, 12], ['clarinets', 0.8, 0.2, 0.6, -12], ['bassoons', 0.8, 0.1, 0.55, -12]],
+    ['piano_mel', 1.4, 0, 0.45, 0], ['flutes', 0.9, 0.3, 0.8, 0], ['clarinets', 0.8, 0.2, 0.6, -12], ['bassoons', 0.8, 0.1, 0.55, -12]],
   bass: [['sustain', 3, 0, 1], ['pedal', 1.6, 0, 0.7], ['pulse', 2.2, 0.35, 1], ['octaves', 1.6, 0.2, 1], ['pizz', 1, 0.15, 0.55]],
 };
+// comfortable writing ranges (sounding MIDI) for melodic and figurative parts
+const RANGE = { vln_theme: [55, 88], vc_theme: [38, 72], horns: [41, 74], trumpets: [55, 82], oboe: [60, 86], piano_mel: [48, 88], flutes: [62, 93], clarinets: [50, 86], bassoons: [36, 67],
+  piano: [36, 88], vla_spic: [48, 82], vln_spic: [55, 88], harp: [36, 96], marimba: [45, 93], organ_arp: [48, 84], glock: [79, 105], vln_pizz: [55, 86] };
+const fold = (tr, p, slack = 0) => { const r = RANGE[tr]; if (!r) return p; while (p > r[1] + slack) p -= 12; while (p < r[0] - slack) p += 12; return p; };
+// lowest note each chord instrument can play
+const PAD_FLOOR = { vla_pad: 48, vln_pad: 55, vln_high: 55, vln_trem: 55, horns_chords: 41, organ_soft: 41, organ: 41, trombones: 40 };
+// the octave shift that fits a whole line into an instrument's range (lines move as a unit, not note by note)
+const fitShift = (tr, ps) => { const r = RANGE[tr]; if (!r || !ps.length) return 0; const lo = Math.min(...ps), hi = Math.max(...ps); let sh = 0;
+  while (hi + sh > r[1] && lo + sh - 12 >= r[0] - 3) sh -= 12; while (lo + sh < r[0] && hi + sh + 12 <= r[1] + 3) sh += 12; return sh; };
+const pcOf = (p) => ((p % 12) + 12) % 12;
+const PAD_TRACKS = new Set(['vla_pad', 'vln_pad', 'horns_chords', 'organ_soft', 'organ', 'trombones', 'vln_trem', 'vln_high']);
 const SOLOISTS = new Set(['oboe', 'piano_mel', 'flutes', 'clarinets', 'bassoons', 'vc_theme']);
 // how the theme is doubled when the full orchestra brings it back: [pair, weight, label, min energy]
 const DOUBLINGS = [[['vln_theme', 'vc_theme'], 3, 'violins and cellos in octaves', 0], [['horns', 'vln_theme'], 2.5, 'horns with the violins', 0.42],
@@ -293,11 +311,13 @@ export class Composer {
     P.tonic = this.tonic;
     P.mode = this.pick('piece', 'Mode', [['aeolian', 4.5, 'Aeolian (minor)'], ['dorian', 2, 'Dorian'], ['phrygian', 0.8, 'Phrygian'], ['ionian', 1.2, 'Ionian (major)'], ['mixolydian', 0.8, 'Mixolydian'], ['lydian', 0.9, 'Lydian']], t);
     P.homeMode = P.mode;
-    P.bpm = this.pick('piece', 'Tempo', [[80, 1], [86, 1.5], [90, 2], [94, 2.5], [98, 2], [104, 1.2], [110, 0.6]].map(([b, w]) => [b, w, b + ' bpm']), t);
-    P.meter = this.pick('piece', 'Meter', [[{ beats: 4, E: 8, name: '4/4' }, 7, '4/4'], [{ beats: 3, E: 6, name: '3/4' }, 1.4, '3/4'], [{ beats: 3, E: 6, name: '6/8' }, 1.6, '6/8']], t);
+    // 6/8 is a compound meter: two dotted-quarter beats per bar, with its own (slower) beat
+    P.meter = this.pick('piece', 'Meter', [[{ beats: 4, E: 8, name: '4/4' }, 7, '4/4'], [{ beats: 3, E: 6, name: '3/4' }, 1.4, '3/4'], [{ beats: 2, E: 6, name: '6/8' }, 1.6, '6/8']], t);
+    P.bpm = this.pick('piece', 'Tempo', (P.meter.name === '6/8' ? [[50, 1], [54, 1.5], [58, 2], [62, 2], [66, 1.2], [70, 0.6]] : [[80, 1], [86, 1.5], [90, 2], [94, 2.5], [98, 2], [104, 1.2], [110, 0.6]])
+      .map(([b, w]) => [b, w, b + (P.meter.name === '6/8' ? ' dotted-quarter beats per minute' : ' bpm')]), t);
     P.targetSecs = this.pick('piece', 'Length', [[180, 1, 'about 3 min'], [215, 2, 'about 3.5 min'], [250, 1.5, 'about 4 min'], [290, 0.8, 'up to 5 min']], t);
     P.palette = this.pick('piece', 'Palette', [['strings', 3, 'strings-led'], ['brass', 1.5, 'brass-led'], ['keys', 2, 'keys and mallets'], ['winds', 1.2, 'woodwind colours'], ['organ', 1.2, 'organ-led']], t);
-    let anchor = 60 + ((this.tonic + 7) % 12); while (anchor < 65) anchor += 12; while (anchor > 72) anchor -= 12;
+    let anchor = 60 + ((this.tonic + 7) % 12); while (anchor < 66) anchor += 12; while (anchor > 77) anchor -= 12;
     P.anchor = anchor;          // the 5th of the key in the violin octave: where melodies ask their question
     P.motif = this.makeMotif(P, t);
     P.motif0 = { durs: P.motif.durs.slice(), steps: P.motif.steps.slice(), bars: P.motif.bars };
@@ -368,6 +388,8 @@ export class Composer {
   }
 
   // ------- the theme: 8 bars built from the motif, a question (bars 1-4) and its answer (bars 5-8) -------------
+  // Many candidate tunes are generated from the same motif and harmony; the one that best follows the craft
+  // rules (a real range, one climax in the answer, leaps recovered by step, no static repeated notes) is kept.
   makeTheme(P, t) {
     const E = P.meter.E, m = P.motif, mode = P.homeMode, T = P.tonic;
     const okAll = (ds) => ds.every((d) => usableDeg(mode, d));
@@ -376,37 +398,70 @@ export class Composer {
     const ante = this.pick('motif', 'Theme harmony: question', (anteO.length ? anteO : [[[0, 5, 3, 0], 1]]).map(([ds, w]) => [ds, w, nm(ds)]), t);
     const cons = this.pick('motif', 'Theme harmony: answer', (consO.length ? consO : [[[0, 3, 0, 0], 1]]).map(([ds, w]) => [ds, w, nm(ds)]), t);
     const chords = ante.concat(cons);
-    const notes = [];
-    const clampD = (d) => Math.max(-3, Math.min(10, d));
-    const push = (pos, dur, deg, snap = true) => notes.push({ pos, dur, deg: clampD(deg), snap });
-    const prefix = (durs, total) => { const out = []; let s = 0; for (const d of durs) { if (s >= total) break; const dd = Math.min(d, total - s); out.push(dd); s += dd; } if (s < total) out.push(total - s); return out; };
-    const path = (from, to, n) => Array.from({ length: n }, (_, i) => Math.round(from + (to - from) * (i + 1) / n));
-    const seq = this.roll([[1, 2], [-1, 1.5], [2, 1]]);
-    const unitA = (pos0, s0) => {
-      let pos = pos0;
-      const one = (base) => { for (let q = 0; q < m.durs.length; q++) { push(pos, m.durs[q], base + m.steps[q], pos % (E / 2) === 0 || m.durs[q] >= 4); pos += m.durs[q]; } };
-      one(s0); if (m.bars === 1) one(s0 + seq);
-      return notes[notes.length - 1].deg;
+    const sc = MODES[mode];
+    const semis = (d) => Math.floor(d / 7) * 12 + sc[((d % 7) + 7) % 7];
+    const LIFTS = [[0, 3, 'like the question'], [1, 1.5, 'a step higher'], [2, 1, 'a third higher']];
+    const gen = () => {
+      const notes = [];
+      const clampD = (d) => Math.max(-3, Math.min(10, d));
+      const snapTo = (deg, pos) => nearestDegTone(deg, chords[Math.min(7, Math.floor(pos / E))]);
+      const push = (pos, dur, deg, snap) => notes.push({ pos, dur, deg: clampD(snap ? snapTo(deg, pos) : deg), snap });
+      const prefix = (durs, total) => { const out = []; let s = 0; for (const d of durs) { if (s >= total) break; const dd = Math.min(d, total - s); out.push(dd); s += dd; } if (s < total) out.push(total - s); return out; };
+      // a stepwise path toward a target that never stands still
+      const path = (from, to, n) => { const out = []; let cur = from; for (let i = 0; i < n; i++) { const left = n - i; const want = Math.round(cur + (to - cur) / left); cur = want === cur ? cur + (to >= from ? 1 : -1) : want; out.push(cur); } return out; };
+      const seq = this.roll([[1, 2], [-1, 1.5], [2, 1]]);
+      const unitA = (pos0, s0) => {
+        let pos = pos0;
+        const one = (base) => { for (let q = 0; q < m.durs.length; q++) { push(pos, m.durs[q], base + m.steps[q], pos % (E / 2) === 0 || m.durs[q] >= 4); pos += m.durs[q]; } };
+        one(s0); if (m.bars === 1) one(s0 + seq);
+        const unit = notes.filter((n) => n.pos >= pos0);
+        if (unit.length >= 4 && new Set(unit.map((n) => n.dur)).size === 1 && this.rng() < 0.8) {       // close the unit on a longer note
+          const a2 = unit[unit.length - 2], z = unit[unit.length - 1]; a2.dur += z.dur; notes.splice(notes.indexOf(z), 1);
+        }
+        return notes[notes.length - 1].deg;
+      };
+      const sA = nearestDegTone(this.roll([[4, 3], [2, 2], [0, 1.2], [7, 1]]), chords[0]);
+      const endA = unitA(0, sA);
+      const tgtB = nearestDegTone(sA + this.roll([[1, 2], [2, 1.5], [-1, 1], [3, 0.8]]), chords[3]);
+      const r3 = prefix(m.durs, E);
+      path(endA, tgtB + (tgtB >= endA ? -1 : 1), r3.length).forEach((d, i) => push(2 * E + r3.slice(0, i).reduce((x, y) => x + y, 0), r3[i], d, i === 0));
+      push(3 * E, E, tgtB, true);
+      const li = this.roll(LIFTS.map((x, i) => [i, x[1]]));
+      const endA2 = unitA(4 * E, sA + LIFTS[li][0]);
+      const Tc = Math.abs(endA2) <= Math.abs(endA2 - 7) ? 0 : 7;
+      const pen = Tc + this.roll([[1, 2], [2, 1.5], [-1, 1]]);
+      const r7 = prefix(m.durs, E);
+      path(endA2, pen, r7.length).forEach((d, i) => push(6 * E + r7.slice(0, i).reduce((x, y) => x + y, 0), r7[i], d, i === 0));
+      const lean = this.rng() < 0.35;
+      if (lean) { push(7 * E, 2, Tc + 1, false); push(7 * E + 2, E - 2, Tc, false); } else push(7 * E, E, Tc, false);
+      return { notes, li, lean };
     };
-    // bars 1-2: the motif (twice, sequenced, if it is one bar long)
-    const sA = nearestDegTone(this.roll([[4, 3], [2, 2], [0, 1.2], [7, 1]]), chords[0]);
-    const endA = unitA(0, sA);
-    // bars 3-4: the motif's head moves toward an open note over the half-cadence chord, then holds it
-    const tgtB = nearestDegTone(sA + this.roll([[1, 2], [2, 1.5], [-1, 1]]), chords[3]);
-    const r3 = prefix(m.durs, E);
-    path(endA, tgtB + (tgtB >= endA ? -1 : 1), r3.length).forEach((d, i) => push(2 * E + r3.slice(0, i).reduce((a, b) => a + b, 0), r3[i], d, i === 0));
-    push(3 * E, E, tgtB);
-    // bars 5-6: the answer begins like the question, or a step higher
-    const lift = this.pick('motif', 'Theme: the answer begins', [[0, 3, 'like the question'], [1, 1.5, 'a step higher']], t);
-    const endA2 = unitA(4 * E, sA + lift);
-    // bars 7-8: a descent that lands on the tonic
-    const Tc = Math.abs(endA2) <= Math.abs(endA2 - 7) ? 0 : 7;
-    const pen = Tc + this.roll([[1, 2], [2, 1.5], [-1, 1]]);
-    const r7 = prefix(m.durs, E);
-    path(endA2, pen, r7.length).forEach((d, i) => push(6 * E + r7.slice(0, i).reduce((a, b) => a + b, 0), r7[i], d, i === 0));
-    if (this.chance('motif', 'Theme: the last note', 0.35, t, 'leans in from a step above', 'lands directly')) { push(7 * E, 2, Tc + 1, false); push(7 * E + 2, E - 2, Tc, false); }
-    else push(7 * E, E, Tc, false);
-    return { chords, notes, E };
+    const score = (notes) => {
+      const ds = notes.map((n) => n.deg);
+      let sc0 = 0;
+      const hi = Math.max(...ds), lo = Math.min(...ds), range = hi - lo;
+      if (range < 5) sc0 += (5 - range) * 3; if (range > 9) sc0 += (range - 9) * 2;
+      const tops = notes.filter((n) => n.deg === hi);
+      sc0 += 2 * (tops.length - 1);
+      if (!(tops[0].pos >= 4 * E && tops[0].pos < 7 * E)) sc0 += 3;              // the climax belongs to the answer
+      for (let i = 1; i < ds.length; i++) {
+        const d = ds[i] - ds[i - 1], st = Math.abs(semis(ds[i]) - semis(ds[i - 1]));
+        if (d === 0) sc0 += 2.5;
+        if (i >= 2 && d === 0 && ds[i - 1] === ds[i - 2]) sc0 += 3;
+        if (Math.abs(d) >= 5) sc0 += 2;
+        if (st === 6 || st === 10 || st === 11) sc0 += 3;
+        if (i >= 2) { const pd = ds[i - 1] - ds[i - 2]; if (Math.abs(pd) >= 3 && Math.sign(d) === Math.sign(pd) && d !== 0) sc0 += 1.5; }
+      }
+      const q4 = notes.filter((n) => n.pos >= 3 * E && n.pos < 4 * E);
+      if (q4.length && ((q4[q4.length - 1].deg % 7) + 7) % 7 === 0) sc0 += 2;    // the question should not end at home
+      return sc0;
+    };
+    let best = null, bs = Infinity;
+    for (let k = 0; k < 40; k++) { const g = gen(); const v = score(g.notes); if (v < bs) { bs = v; best = g; } }
+    // the choices behind the winning tune are shown with their odds
+    this.decisions.push({ t, level: 'motif', label: 'Theme: the answer begins', chosen: best.li, options: LIFTS.map((x) => ({ name: x[2], p: x[1] / 5.5 })) });
+    this.decisions.push({ t, level: 'motif', label: 'Theme: the last note', chosen: best.lean ? 0 : 1, options: [{ name: 'leans in from a step above', p: 0.35 }, { name: 'lands directly', p: 0.65 }] });
+    return { chords, notes: best.notes, E, score: bs };
   }
 
   newSection() {
@@ -462,6 +517,10 @@ export class Composer {
       S.pickup = this.pick('motif', 'Melody pickup', [[0, 3, 'the tune starts on the downbeat'], [1, 1.5, 'an eighth-note pickup'], [2, 2, 'a quarter-note pickup']], t);
     if (role === 'arrival' || (role === 'build' && e1 > 0.7))
       S.brass = this.pick('pattern', 'Brass accents', [['strong', role === 'arrival' ? 2.5 : 1.2, 'short chords on the strong bars'], ['rhythm', role === 'build' ? 2 : 1.2, 'rhythmic brass on the accents'], ['none', 1.5, 'sustained brass only']], t);
+    if (role === 'arrival' && S.plan.length >= 4)
+      S.pullBack = this.chance('section', 'Shape of the climax', 0.6, t, 'pulls back before its last statement', 'pushes straight through');
+    if (role === 'song' && S.theme === 'full' && P.sections > 0)
+      S.bassWait = this.chance('layer', 'Basses wait for the answer', 0.4, t, 'yes, the tune starts without them', 'no');
     if (role === 'arrival' || (role === 'build' && e1 > 0.7))
       S.drums = this.chance('pattern', 'Ensemble drums', role === 'arrival' ? 0.6 : 0.35, t, 'low drums drive the beat', 'timpani only');
     S.motifOps = 0;
@@ -588,7 +647,7 @@ export class Composer {
         d = ['arrival', 'emerge', 'pulse', 'coda'].includes(S.role) ? 0
           : this.pick('harmony', 'Opening chord', [[0, 4], [5, 1], [3, 0.7]].filter(([k]) => ok(k)).map(([k, w]) => [k, w, label(k)]), at(0), false, (k) => ({ feel: mkChord(T, mode, k).feel }));
       } else {
-        const opts = Object.entries(CHORD_GRAPH[cur]).filter(([k]) => ok(+k)).map(([k, w]) => [+k, w, label(+k)]);
+        const opts = Object.entries(graphFor(mode, cur)).filter(([k]) => ok(+k) && +k !== fixed[i + 1] && +k !== cur).map(([k, w]) => [+k, w, label(+k)]);
         d = this.pick('harmony', 'Next chord', opts.length ? opts : [[0, 1, label(0)]], at(i), false, (k) => ({ feel: mkChord(T, mode, k).feel }));
       }
       degs.push(d); cur = d;
@@ -613,8 +672,8 @@ export class Composer {
     chords = this.invert(P, S, chords, cadence, at(1));
     P.prevChord = chords[chords.length - 1];
     const spans = []; let pos = 0;
-    for (let i = 0; i < nCh; i++) { spans.push([pos, pos + lens[i], chords[i]]); pos += lens[i]; }
-    return { chords, cadence, spans };
+    for (let i = 0; i < nCh; i++) { const last = spans[spans.length - 1]; if (last && last[2].name === chords[i].name) last[1] += lens[i]; else spans.push([pos, pos + lens[i], chords[i]]); pos += lens[i]; }
+    return { chords: spans.map((x) => x[2]), cadence, spans };
   }
 
   // the theme brings its own harmony, one chord per bar, translated into the current mode
@@ -628,7 +687,9 @@ export class Composer {
     const cadence = half.startsWith('ante') ? (degs[3] === 4 ? 'half' : 'open') : degs[2] === 4 ? 'authentic' : degs[2] === 3 ? 'plagal' : 'modal';
     chords = this.invert(P, S, chords, cadence, t);
     P.prevChord = chords[3];
-    return { chords, cadence, spans: chords.map((c, i) => [i, i + 1, c]) };
+    const spans = [];
+    chords.forEach((c, i) => { const last = spans[spans.length - 1]; if (last && last[2].deg === c.deg && last[2].bass === c.bass) last[1] = i + 1; else spans.push([i, i + 1, c]); });
+    return { chords: spans.map((x) => x[2]), cadence, spans };
   }
 
   // ------- arranger: decides who plays, when they enter and when they leave ------------------------
@@ -645,7 +706,7 @@ export class Composer {
     const busy = new Set(Object.values(L).flat().map((l) => l.track));
     const themed = S.themeAt[phI] !== undefined;
     const budget = {
-      bass: e < 0.3 ? 1 : e < 0.7 ? 2 : 3,
+      bass: S.bassWait && phI === 0 ? 0 : e < 0.3 ? 1 : e < 0.7 ? 2 : 3,
       pad: S.role === 'still' ? 1 : e < 0.2 ? 1 : e < 0.4 ? 2 : e < 0.7 ? 3 : 4,
       ost: S.role === 'still' ? 0 : S.role === 'emerge' ? (e < 0.15 ? 0 : 1) : e < 0.25 ? 1 : e < 0.45 ? 2 : e < 0.75 ? 3 : 4,
       mel: ['song', 'build', 'arrival', 'afterglow', 'coda', 'still'].includes(S.role) ? (e < 0.55 ? 1 : e < 0.85 ? 2 : 3)
@@ -673,7 +734,7 @@ export class Composer {
       const candOf = (l) => cands.find((c) => c[0] === (l.kind || l.track));
       const staying = () => L[role].filter((l) => l.until > tEnd);
       const counted = () => L[role].filter((l) => !l.dovetail).length;
-      const how = big ? (drop && role !== 'mel' ? 'dovetail' : 'now') : 'end';
+      const how = big ? (drop && role !== 'mel' ? 'dovetail' : 'now') : role === 'bass' && S.bassWait && phI === 0 ? 'now' : 'end';
       for (const l of [...L[role]]) {
         if (l.until <= tEnd || fits(candOf(l))) continue;
         leave(l, role, how);
@@ -796,7 +857,13 @@ export class Composer {
       const i = Math.floor(x); return t0 + T[i] + (x - i) * beatDur * st[i];
     };
     // ---- dynamics: the section's ramp, shaped by a hairpin across the phrase ----
-    const ramp = (barF) => S.e0 + (S.e1 - S.e0) * Math.min(1, (sb + barF) / S.bars);
+    const quietNext = nextRole && ['still', 'afterglow', 'coda', 'new piece'].includes(nextRole);
+    const ramp = (barF) => {
+      let r = S.e0 + (S.e1 - S.e0) * Math.min(1, (sb + barF) / S.bars);
+      if (S.pullBack && phI === 2) r *= 0.8 + 0.2 * Math.min(1, Math.max(0, barF / bars));        // the climax pulls back, then rebuilds into its last statement
+      if (S.role === 'arrival' && isLast && quietNext) r *= 1 - 0.14 * Math.max(0, (barF / bars - 0.5) * 2);   // and eases off as it ends
+      return r;
+    };
     const A = HAIR[S.role] ?? 0.06;
     const hair = (barF) => { const f = Math.max(0, Math.min(1, barF / bars)); return f < 0.65 ? -0.5 + f / 0.65 : 0.5 - (f - 0.65) / 0.35 * 0.8; };
     const eAt = (barF) => Math.max(0.03, Math.min(1, ramp(barF) * (1 + A * hair(barF))));
@@ -864,7 +931,8 @@ export class Composer {
               if (ap !== bn && Math.abs(ap - bn) <= 7) { app = ap; bEnd = b - 1 / beats; }
             }
           }
-          const emit = (tr, p, mul) => { note(tr, a, bEnd, p, lev('bass', a) * mul * fadeOf(l, a), l.dovetail ? { fade: true } : null); if (app !== null) note(tr, bEnd, b, p + (app - bn), lev('bass', a) * mul * 0.9 * fadeOf(l, a)); };
+          const LOW = { basses: 28, vc_pad: 36, tuba: 29, organ_pedal: 24, piano_low: 21 };
+          const emit = (tr, p, mul) => { note(tr, a, bEnd, p, lev('bass', a) * mul * fadeOf(l, a), l.dovetail ? { fade: true } : null); if (app !== null) { const q = p + (app - bn); note(tr, bEnd, b, q >= (LOW[tr] ?? 0) ? q : p, lev('bass', a) * mul * 0.9 * fadeOf(l, a)); } };
           if (l.kind === 'sustain') {
             emit('basses', bn, 1); emit('vc_pad', bassNote(ch, 36, 47), 0.95);
             if (eAt(a) > 0.8) emit('tuba', bassNote(ch, 33, 44), 0.9);          // weight under the climax
@@ -879,63 +947,10 @@ export class Composer {
           for (let i = 0; i < E; i++) {
             const bf = b + i / E;
             if (bf < s0 || bf >= s1) continue;
-            note(tr, bf, b + (i + 0.8) / E, starts.has(i) ? bn - 12 : bn, lev('bass', bf) * (starts.has(i) ? 1.12 : 0.85) * fadeOf(l, bf));
+            note(tr, bf, b + (i + 0.8) / E, starts.has(i) ? bn : bn + 12, lev('bass', bf) * (starts.has(i) ? 1.12 : 0.85) * fadeOf(l, bf));
           }
           if (l.kind === 'pulse' && e > 0.6) for (const i of starts) if (b + i / E >= s0 && b + i / E < s1) note('basses_spic', b + i / E, b + (i + 0.9) / E, bassNote(ch, 28, 39), lev('bass', b));
         }
-      }
-    }
-    // ---- pads: held chords that swell, with suspensions that resolve a beat late ----
-    const susP = SUS_P[S.role] ?? 0.2;
-    for (const [a0, b0, ch] of chordSpan) {
-      const occupied = new Set();
-      for (const l of L.pad) {
-        const [s0, s1] = span(l);
-        const a = Math.max(a0, s0), b = Math.min(b0, s1);
-        if (b <= a) continue;
-        if (l.track === '~pad') { const v = voicing(ch, 4, 50, 64, l.prev); l.prev = v; ev.push({ type: 'pad', t: timeOf(a), dur: timeOf(b) - timeOf(a), midis: v, lev: 0.06 + 0.12 * eAt(a) }); continue; }
-        const nv = l.track === 'organ' || l.track === 'organ_soft' ? 4 : l.track === 'vln_high' ? 2 : 3;
-        const v = voicing(ch, nv, l.reg[0], l.reg[1], l.prev, occupied);
-        const prev = l.prev; l.prev = v;
-        const swell = b - a >= 1 && !/organ/.test(l.track);
-        let sus = -1;
-        if (prev && a === a0 && b - a >= 1 && this.rng() < susP && !ch.strict) {
-          const sorted = [...prev].sort((x, y) => x - y);
-          for (let i = 0; i < v.length; i++) { const d = sorted[i] - v[i]; if ((d === 1 || d === 2) && !ch.pcs.includes(sorted[i] % 12) && !v.includes(sorted[i])) { sus = i; break; } }
-          if (sus >= 0) { const held = sorted[sus]; note(l.track, a, a + 1 / beats, held, lev('pad', a) * fadeOf(l, a)); note(l.track, a + 1 / beats, b, v[sus], lev('pad', a) * fadeOf(l, a), { fadeIn: 0.1, swell, fade: l.dovetail }); occupied.add(v[sus]); }
-        }
-        for (let i = 0; i < v.length; i++) { if (i === sus) continue; note(l.track, a, b, v[i], lev('pad', a) * fadeOf(l, a), { swell, fade: l.dovetail }); occupied.add(v[i]); }
-      }
-    }
-    // ---- ostinati: the figures climb through a build and may thin to their accents for a phrase ----
-    if (sb !== 0 && L.ost.length >= 2 && ['song', 'pulse', 'shadow', 'afterglow'].includes(S.role)
-      && this.chance('pattern', 'Texture', 0.22, t0, 'one figure thins to its accents', 'full texture')) {
-      const cands = L.ost.filter((l) => l.from <= sb);
-      if (cands.length) cands[Math.floor(this.rng() * cands.length)].thin = true;
-    }
-    const climbOf = (bar) => (S.role === 'build' ? Math.round(7 * bar / S.bars) : S.role === 'arrival' && P.arrivals >= 2 ? 5 : 0);
-    for (const l of L.ost) {
-      const [s0, s1] = span(l);
-      if (s1 <= s0) continue;
-      const n = l.slots;
-      for (let b = 0; b < bars; b++) {
-        const ch = chordAt(b);
-        const lo = l.base - 3 + climbOf(sb + b);
-        const tones = chordTones(ch, midiOfPc(ch.pcs[2], lo, lo + 11), 5);
-        let groups = l.grouping;
-        if (l.process === 'grow') { const g = 2 + ((sb + b) % 4); groups = []; let left = n; while (left > 0) { groups.push(Math.min(g, left)); left -= g; } }
-        let pos = 0;
-        for (const g of groups) {
-          for (let j = 0; j < g && pos < n; j++, pos++) {
-            const bf = b + pos / n;
-            if (bf < s0 || bf >= s1) continue;
-            if (l.thin && j !== 0) continue;
-            const idx = l.process === 'cycle' ? (l.phase + pos) % l.cell.length : j % l.cell.length;
-            const pitch = tones[l.cell[idx] % tones.length];
-            note(l.track, bf, b + (pos + 1) / n, pitch, lev('ost', bf) * (j === 0 ? 1.12 : 0.88) * fadeOf(l, bf));
-          }
-        }
-        l.phase = (l.phase + n) % 840;
       }
     }
     // ---- melody: the theme when the plan calls for it, otherwise the motif, developed ----
@@ -951,18 +966,27 @@ export class Composer {
         else if (prevNote && (prevNote[1] - prevNote[0]) * E >= pk + 2) { prevNote[1] = startBar - pk / E; okPk = true; }
         if (okPk) {
           const kindPk = this.roll([['step', 3], ['leap', 1.5], ['same', 1]]);
-          const pp = kindPk === 'step' ? scaleStep(first, -1, P.tonic, S.mode) : kindPk === 'leap' ? nearestChordTone(first - 7, ch, 2) : first;
+          let pp = kindPk === 'step' ? scaleStep(first, -1, P.tonic, S.mode) : kindPk === 'leap' ? nearestChordTone(first - 5, ch, 2) : first;
+          if (prevNote && Math.abs(pp - prevNote[2]) > 7) pp = scaleStep(first, prevNote[2] > first ? 1 : -1, P.tonic, S.mode);   // approach from the side the line is coming from
           line.push([startBar - pk / E, startBar, pp, k, true]);
         }
       };
       if (themeHalf) {
         // the theme, exactly as composed (its degrees are translated into the current mode and chords)
         const half0 = themeHalf.startsWith('ante') ? 0 : 4 * E;
-        const up = themeHalf.endsWith('2') ? 7 : 0;            // the second statement at a climax rises an octave
+        const themeTop = (u) => Math.max(...P.theme.notes.map((n) => scaleStep(P.anchor - 7, n.deg + u, P.tonic, S.mode)));
+        S.themeTop = themeTop(0);
+        const up = themeHalf.endsWith('2') && themeTop(7) + (S.themeShift || 0) <= RANGE.vln_theme[1] ? 7 : 0;   // the second statement at a climax rises an octave if it fits
         const notes = P.theme.notes.filter((n) => n.pos >= half0 && n.pos < half0 + 4 * E);
-        const real = (n) => { const barF = (n.pos - half0) / E; let p = scaleStep(P.anchor - 7, n.deg + up, P.tonic, S.mode); if (n.snap) p = nearestChordTone(p, chordAt(barF), 2); return fitPitch(p, barF); };
+        const real = (n) => { const barF = (n.pos - half0) / E; let p = scaleStep(P.anchor - 7, n.deg + up, P.tonic, S.mode); const ch = chordAt(barF); if (n.snap && !ch.pcs.includes(pcOf(p))) p = nearestChordTone(p, ch, 2); return fitPitch(p, barF); };
         if (pk > 0 && S.role !== 'arrival' && notes.length) addPickup(0, 0, real(notes[0]), chordAt(0));
-        for (const n of notes) { const barF = (n.pos - half0) / E; line.push([barF, barF + n.dur / E, real(n), Math.floor(barF / 2), false]); }
+        let pd = null;
+        for (const n of notes) {
+          const barF = (n.pos - half0) / E; let p = real(n);
+          const prev = line.length ? line[line.length - 1] : null;
+          if (prev && !prev[4] && p === prev[2] && pd !== null && n.deg !== pd) { const ch = chordAt(barF); for (let dd = 1; dd <= 4; dd++) { const c = p + Math.sign(n.deg - pd) * dd; if (ch.pcs.includes(pcOf(c))) { p = c; break; } } }
+          line.push([barF, barF + n.dur / E, p, Math.floor(barF / 2), false]); pd = n.deg;
+        }
         const label = S.theme === 'echo' ? 'An echo of the theme\'s closing phrase' : themeHalf.endsWith('2') ? 'The theme again, an octave higher' : themeHalf === 'cons' ? 'The theme\'s answer'
           : S.theme === 'tutti' ? (P.themeCount ? 'The main theme returns with the full orchestra' : 'The main theme, at last, with the full orchestra')
           : S.theme === 'reprise' ? 'The main theme returns, quietly' : P.themeCount ? 'The main theme returns' : 'The main theme is stated';
@@ -986,8 +1010,12 @@ export class Composer {
           if (op === 'ornament') { const d2 = [], s2 = []; durs.forEach((d, q) => { if (d >= 4 && q + 1 < durs.length && Math.abs(steps[q + 1] - steps[q]) >= 2) { d2.push(d - 1, 1); s2.push(steps[q], steps[q] + Math.sign(steps[q + 1] - steps[q])); } else { d2.push(d); s2.push(steps[q]); } }); durs = d2; steps = s2; }
           const lift = op === 'sequence' ? (P.stmt % 2 ? 1 : -1) * (this.rng() < 0.4 ? 2 : 1) : op === 'climb' ? 1 + k : 0;
           const ch = chordAt(k * m.bars);
-          let target = scaleStep(P.anchor, arch[P.stmt % arch.length] + lift0 + lift, P.tonic, S.mode);
-          if (P.lastMelEnd !== null && Math.abs(target - P.lastMelEnd) > 5) target = Math.round((target + P.lastMelEnd) / 2);   // start near where the last phrase ended
+          let target = scaleStep(P.anchor, Math.min(6, arch[P.stmt % arch.length] + lift0 + lift), P.tonic, S.mode);
+          if (P.lastMelEnd !== null) {                      // start near where the last phrase ended
+            while (target - P.lastMelEnd > 7 && target - 12 >= P.anchor - 12) target -= 12;
+            while (P.lastMelEnd - target > 7 && target + 12 <= P.anchor + 12) target += 12;
+            if (Math.abs(target - P.lastMelEnd) > 5) target = Math.round((target + P.lastMelEnd) / 2);
+          }
           const anchor = nearestChordTone(target, ch, 3);
           P.stmt++;
           let pos = k * full;
@@ -995,15 +1023,63 @@ export class Composer {
           // a pickup: the statement begins a little before its downbeat, stepping or leaping up into its first note
           const startBar = k * m.bars;
           if (pk > 0 && startBar >= leadFrom && S.role !== 'arrival') addPickup(k, startBar, nearestChordTone(scaleStep(anchor, steps[0], P.tonic, S.mode), ch, 2), ch);
+          let prevP = null;
           for (let q = 0; q < durs.length && pos < end; q++) {
             const d = Math.min(durs[q], end - pos);
             const barF = pos / E;
             let pch = scaleStep(anchor, steps[q], P.tonic, S.mode);
-            if (pos % (E / 2) === 0 || d >= 4) pch = nearestChordTone(pch, chordAt(barF), 2);
-            line.push([barF, (pos + d) / E, fitPitch(pch, barF), k, false]);
+            if (pos % (E / 2) === 0 || d >= 4) {
+              const cht = chordAt(barF), want = q ? steps[q] - steps[q - 1] : 0;
+              let sn = nearestChordTone(pch, cht, 2);
+              // snapping must not flatten a moving line into a repeated note: take the next chord tone in the line's direction
+              if (prevP !== null && sn === prevP && want !== 0) for (let dd = 1; dd <= 5; dd++) { const c = prevP + Math.sign(want) * dd; if (cht.pcs.includes(pcOf(c))) { sn = c; break; } }
+              pch = sn;
+            }
+            pch = fitPitch(pch, barF);
+            line.push([barF, (pos + d) / E, pch, k, false]);
+            prevP = pch;
             pos += d;
           }
         }
+      }
+      // craft rules: no tritone or seventh leaps, nothing wider than an octave, big leaps recover by step,
+      // no runs of three repeated notes, and no long note a minor ninth over the bass
+      const inScale = (p) => MODES[S.mode].includes(pcOf(p - P.tonic));
+      for (let k = 1; k < line.length; k++) {
+        const a = line[k - 1], b = line[k];
+        if (b[0] - a[1] > 0.3) continue;                  // a rest frees the next note
+        const ch = chordAt(Math.max(0, b[0]));
+        let iv = b[2] - a[2];
+        if (Math.abs(iv) > 12 || Math.abs(iv) === 10 || Math.abs(iv) === 11) { b[2] -= 12 * Math.sign(iv); iv = b[2] - a[2]; }
+        if (Math.abs(iv) === 12 && Math.min(a[1] - a[0], b[1] - b[0]) * beats < 1) { b[2] -= 12 * Math.sign(iv); iv = 0; }   // no octave leaps on quick notes
+        if (Math.abs(iv) === 6) {
+          let best = null; for (let p = a[2] - 7; p <= a[2] + 7; p++) if (ch.pcs.includes(pcOf(p)) && Math.abs(p - a[2]) !== 6 && p !== a[2] && (best === null || Math.abs(p - b[2]) < Math.abs(best - b[2]))) best = p;
+          if (best !== null) b[2] = best;
+        }
+        if (k >= 2 && a[0] - line[k - 2][1] < 0.3) {
+          const pr = a[2] - line[k - 2][2]; iv = b[2] - a[2];
+          if (Math.abs(pr) >= 7 && Math.sign(iv) === Math.sign(pr) && Math.abs(iv) >= 3) { for (let dd = 1; dd <= 4; dd++) { const c = a[2] - Math.sign(pr) * dd; if (ch.pcs.includes(pcOf(c)) || inScale(c)) { b[2] = c; break; } } }
+          if (!themeHalf && b[2] === a[2] && a[2] === line[k - 2][2]) { const nx = line[k + 1]; const dir = nx ? Math.sign(nx[2] - b[2]) || 1 : -1; for (let dd = 1; dd <= 4; dd++) { const c = a[2] + dir * dd; if (ch.pcs.includes(pcOf(c))) { b[2] = c; break; } } }
+        }
+      }
+      for (const x of line) if ((x[1] - x[0]) * beats >= 0.5 && pcOf(x[2] - chordAt(Math.max(0, x[0])).bass) === 1) x[2] = nearestChordTone(x[2] + 1, chordAt(Math.max(0, x[0])), 2);
+      // keep the line in its register and near where the last phrase ended: the whole phrase moves by octaves as a unit
+      if (line.length) {
+        const hi = Math.max(...line.map((x) => x[2])), lo = Math.min(...line.map((x) => x[2]));
+        let sh = 0;
+        if (themeHalf && S.themeShift !== undefined) sh = S.themeShift;
+        else if (themeHalf && S.theme === 'tutti' && S.themeTop + 12 <= RANGE.vln_theme[1] && !themeHalf.endsWith('2')) { sh = 12; S.themeShift = sh; }
+        else {
+          const recent = P.lastMelEnd !== null && P.melEndT > t0 - 3;
+          let bd = Infinity;
+          for (const c of [0, -12, 12]) {
+            if (hi + c > P.anchor + 14 || lo + c < P.anchor - 10) continue;
+            const d = (recent ? Math.abs(line[0][2] + c - P.lastMelEnd) : 0) + Math.abs(c) * 0.3;
+            if (d < bd) { bd = d; sh = c; }
+          }
+          if (themeHalf) S.themeShift = sh;
+        }
+        if (sh) for (const x of line) x[2] += sh;
       }
       if (line.length) {
         const last = line[line.length - 1];
@@ -1040,25 +1116,98 @@ export class Composer {
             let p;
             if (prevC === null || prevM === null) p = cands[Math.floor(cands.length / 2)];
             else { const up = m[2] > prevM; const pref = cands.filter((x) => (up ? x <= prevC : x >= prevC)); const pool = pref.length ? pref : cands; p = pool.reduce((best, x) => (Math.abs(x - prevC) < Math.abs(best - prevC) ? x : best), pool[0]); }
-            note(l.track, a, Math.min(b, s1), Math.max(36, Math.min(96, p + l.oct)), lev('mel', a) * 0.8);
+            note(l.track, a, Math.min(b, s1), fold(l.track, p + l.oct), lev('mel', a) * 0.8);
             prevC = p; prevM = m[2];
           }
           return;
         }
+        const ps = line.map((x) => x[2] + l.oct), r = RANGE[l.track];
+        const sh = r && l.sh !== undefined && Math.min(...ps) + l.sh >= r[0] - 3 && Math.max(...ps) + l.sh <= r[1] + 3 ? l.sh : fitShift(l.track, ps);
+        l.sh = sh;
         for (const [a, b, p, k, isPk, acc, tail] of line) {
           if (a < s0 - 0.5 || a >= s1) continue;
           if (share === 'answer' && k % 2 === 0 && line.some((x) => x[3] === k + 1)) continue;
           if (share === 'ending' && k !== lastK) continue;
-          note(l.track, a, b, Math.max(36, Math.min(96, p + l.oct)), lev('mel', Math.max(0, a)) * (acc || 1) * (isPk ? 0.85 : 1), tail !== undefined ? { tail } : null);
+          note(l.track, a, b, fold(l.track, p + l.oct + sh, 3), lev('mel', Math.max(0, a)) * (acc || 1) * (isPk ? 0.85 : 1), tail !== undefined ? { tail } : null);
         }
-        if (e > 0.85 && l.track === 'vln_theme') for (const [a, b, p] of line) if (a >= s0 && a < s1 && p + 12 <= 98) note('vln_theme', a, b, p + 12, lev('mel', a) * 0.9);
+        if (e > 0.85 && l.track === 'vln_theme' && Math.max(...line.map((x) => x[2])) + sh + 12 <= RANGE.vln_theme[1] + 2) for (const [a, b, p] of line) if (a >= s0 && a < s1) note('vln_theme', a, b, p + sh + 12, lev('mel', a) * 0.9);
       });
+    }
+    // ---- pads: held chords that swell, with suspensions that resolve a beat late ----
+    const susP = SUS_P[S.role] ?? 0.2;
+    const melTrs = new Set(L.mel.map((l) => l.track)), highLead = L.mel.length && L.mel[0].oct >= 0;
+    const melNotes = ev.filter((n) => n.type === 'note' && melTrs.has(n.track));
+    const melLowIn = (a, b) => { let lo = Infinity; for (const n of melNotes) if (n.b0 < b && n.b1 > a) lo = Math.min(lo, n.pitch); return lo; };
+    for (const [a0, b0, ch] of chordSpan) {
+      const occupied = new Set();
+      for (const l of L.pad) {
+        const [s0, s1] = span(l);
+        const a = Math.max(a0, s0), b = Math.min(b0, s1);
+        if (b <= a) continue;
+        if (l.track === '~pad') { const v = voicing(ch, 4, 50, 64, l.prev); l.prev = v; ev.push({ type: 'pad', t: timeOf(a), dur: timeOf(b) - timeOf(a), midis: v, lev: 0.06 + 0.12 * eAt(a) }); continue; }
+        const nv = l.track === 'organ' || l.track === 'organ_soft' ? 4 : l.track === 'vln_high' ? 2 : 3;
+        let [rlo, rhi] = l.reg;
+        const cap = highLead ? melLowIn(a, b) - 1 : Infinity;      // under a high tune the chord stays beneath it
+        const floor = PAD_FLOOR[l.track] ?? 36;
+        if (cap < rhi) {
+          if (cap >= rlo + 4) rhi = cap;
+          else if (rlo - 12 >= floor && cap >= rlo - 12 + 7) { rlo -= 12; rhi = cap; }
+          else if (cap >= floor + 5) { rlo = floor; rhi = cap; }
+        }
+        const v = voicing(ch, nv, rlo, rhi, l.prev, occupied);
+        const prev = l.prev; l.prev = v;
+        const swell = b - a >= 1 && !/organ/.test(l.track);
+        let sus = -1;
+        if (prev && a === a0 && b - a >= 1 && this.rng() < susP && !ch.strict) {
+          const sorted = [...prev].sort((x, y) => x - y);
+          for (let i = 0; i < v.length; i++) { const d = sorted[i] - v[i]; if ((d === 1 || d === 2) && !ch.pcs.includes(sorted[i] % 12) && !v.includes(sorted[i])) { sus = i; break; } }
+          if (sus >= 0) { const held = sorted[sus]; note(l.track, a, a + 1 / beats, held, lev('pad', a) * fadeOf(l, a)); note(l.track, a + 1 / beats, b, v[sus], lev('pad', a) * fadeOf(l, a), { fadeIn: 0.1, swell, fade: l.dovetail }); occupied.add(v[sus]); }
+        }
+        for (let i = 0; i < v.length; i++) { if (i === sus) continue; note(l.track, a, b, v[i], lev('pad', a) * fadeOf(l, a), { swell, fade: l.dovetail }); occupied.add(v[i]); }
+      }
+    }
+    // ---- ostinati: the figures climb through a build and may thin to their accents for a phrase ----
+    if (sb !== 0 && L.ost.length >= 2 && ['song', 'pulse', 'shadow', 'afterglow'].includes(S.role)
+      && this.chance('pattern', 'Texture', 0.22, t0, 'one figure thins to its accents', 'full texture')) {
+      const cands = L.ost.filter((l) => l.from <= sb);
+      if (cands.length) cands[Math.floor(this.rng() * cands.length)].thin = true;
+    }
+    const melMid = melNotes.length ? melNotes.reduce((x, n) => x + n.pitch, 0) / melNotes.length : null;
+    const climbOf = (bar) => (S.role === 'build' ? Math.round(7 * bar / S.bars) : S.role === 'arrival' && P.arrivals >= 2 ? 5 : 0);
+    for (const l of L.ost) {
+      const [s0, s1] = span(l);
+      if (s1 <= s0) continue;
+      const n = l.slots;
+      for (let b = 0; b < bars; b++) {
+        const ch = chordAt(b);
+        if (b === 0) {                                     // a figure in the tune's register moves an octave away from it
+          const mid = l.base + 6 + (l.rs || 0), r = RANGE[l.track] || [0, 127];
+          if (melMid !== null && Math.abs(mid - melMid) < 4) { const down = l.base - 3 + (l.rs || 0) - 12 >= r[0]; l.rs = (l.rs || 0) + (down ? -12 : 12); }
+          else if (melMid === null || Math.abs(l.base + 6 - melMid) >= 4) l.rs = 0;
+        }
+        const lo = l.base - 3 + (l.rs || 0) + climbOf(sb + b);
+        const tones = chordTones(ch, midiOfPc(ch.pcs[2], lo, lo + 11), 5);
+        let groups = l.grouping;
+        if (l.process === 'grow') { const g = 2 + ((sb + b) % 4); groups = []; let left = n; while (left > 0) { groups.push(Math.min(g, left)); left -= g; } }
+        let pos = 0;
+        for (const g of groups) {
+          for (let j = 0; j < g && pos < n; j++, pos++) {
+            const bf = b + pos / n;
+            if (bf < s0 || bf >= s1) continue;
+            if (l.thin && j !== 0) continue;
+            const idx = l.process === 'cycle' ? (l.phase + pos) % l.cell.length : j % l.cell.length;
+            const pitch = fold(l.track, tones[l.cell[idx] % tones.length]);
+            note(l.track, bf, b + (pos + 1) / n, pitch, lev('ost', bf) * (j === 0 ? 1.12 : 0.88) * fadeOf(l, bf));
+          }
+        }
+        l.phase = (l.phase + n) % 840;
+      }
     }
     // ---- percussion & sound design: accents follow the hypermeter, not every bar ----
     if (e > 0.42) {
       const pat = S.timp || (S.timp = this.pick('pattern', 'Timpani pattern', [['downbeat', 3, 'downbeats'], ['pickup', 2, 'downbeat + pickup'], ['half', beats === 4 ? 1.2 : 0, 'half notes'], ['rolls', 1, 'rolls']], t0));
       for (let b = 0; b < bars; b++) {
-        const bn = bassNote(chordAt(b), 33, 44), l = Math.min(1, 0.2 + eAt(b));
+        const bn = bassNote(chordAt(b), 36, 47), l = Math.min(1, 0.2 + eAt(b));
         const every = eAt(b) > 0.72;
         if (pat === 'rolls') { if (strong(b + 1)) note('timp_roll', b, b + 1, bn, Math.min(1, 0.3 + eAt(b) * 0.5)); }
         else {
@@ -1074,8 +1223,8 @@ export class Composer {
       const x = eAt(b);
       if (x < 0.62) continue;
       ev.push({ type: 'perc', kind: 'drum_f', t: timeOf(b), lev: 0.3 + 0.45 * x });
-      if (beats === 4 && x > 0.8) ev.push({ type: 'perc', kind: 'drum_p', t: timeOf(b + 0.5), lev: 0.2 + 0.35 * x });
-      if (strong(b + 1) && b + 1 < bars) for (let i = 0; i < 2; i++) ev.push({ type: 'perc', kind: 'drum_hi', t: timeOf(b + 1 - (2 - i) / (beats * 2)), lev: (0.2 + 0.3 * x) * (0.8 + 0.2 * i) });
+      if (beats !== 3 && x > 0.8) ev.push({ type: 'perc', kind: 'drum_p', t: timeOf(b + 0.5), lev: 0.2 + 0.35 * x });
+      if (strong(b + 1) && b + 1 < bars) for (let i = 0; i < 2; i++) ev.push({ type: 'perc', kind: 'drum_hi', t: timeOf(b + 1 - (2 - i) / E), lev: (0.2 + 0.3 * x) * (0.8 + 0.2 * i) });
     }
     // brass: short accented chords on the strong bars, or a rhythm on the section's accents
     if (S.brass && S.brass !== 'none' && e > 0.62) {
@@ -1096,7 +1245,7 @@ export class Composer {
     if (e > 0.32) for (let b = 0; b < bars; b++) ev.push({ type: 'sub', t: timeOf(b), dur: timeOf(b + 1) - timeOf(b), midi: bassNote(ped(chordAt(b)), 24, 35), lev: subLev(eAt(b)), att: 0.01, rel: 0.3 });
     if (S.bar === 0) {
       const jump = e - this.lastE;
-      if (S.role === 'arrival' || jump > 0.22 || S.role === 'shadow') ev.push({ type: 'boom', t: t0, lev: Math.min(1, 0.35 + Math.max(0, jump) + (S.role === 'arrival' ? 0.4 : 0)), root: bassNote(chords[0], 22, 33) });
+      if (S.role === 'arrival' || (P.sections > 1 && (jump > 0.22 || S.role === 'shadow'))) ev.push({ type: 'boom', t: t0, lev: Math.min(1, 0.35 + Math.max(0, jump) + (S.role === 'arrival' ? 0.4 : 0)), root: bassNote(chords[0], 22, 33) });
       if (S.role === 'arrival') { ev.push({ type: 'perc', kind: 'crash', t: t0, lev: 1 }); if (this.rng() < 0.6) ev.push({ type: 'perc', kind: 'gong', t: t0, lev: 0.9 }); }
       if (['emerge', 'still', 'coda'].includes(S.role)) {
         const sp = timeOf(Math.min(bars, S.bars)) - t0 + S.bars * barDur * 0.5;
@@ -1110,7 +1259,7 @@ export class Composer {
     if (isLast && nextRole === 'arrival') {
       const rb = Math.min(bars, 2);
       ev.push({ type: 'riser', t: timeOf(bars - rb), dur: timeOf(bars) - timeOf(bars - rb), lev: 0.45 });
-      note('timp_roll', bars - rb, bars, midiOfPc(P.tonic, 33, 44), 0.9);
+      note('timp_roll', bars - rb, bars, midiOfPc(P.tonic, 36, 47), 0.9);
       // the brass hold the last chord and swell into the downbeat
       const tr = busyTracks.has('horns_chords') ? 'trombones' : 'horns_chords';
       const v = voicing(chordAt(bars - 0.01), 3, tr === 'trombones' ? 43 : 50, tr === 'trombones' ? 60 : 64, null);
@@ -1124,7 +1273,7 @@ export class Composer {
     const top = midiOfPc(P.tonic, 74, 85);
     if (gesture === 'run') {
       // violins and violas race up the scale into the downbeat
-      const n = beats === 4 ? 8 : 6, step = 1 / (beats * 4);
+      const n = beats === 4 ? 8 : 6, step = 1 / (E * 2);
       for (let i = 0; i < n; i++) {
         const bf = endAt - (n - i) * step, p = scaleStep(top, -(n - 1 - i), P.tonic, scaleNow), lv = 0.45 + 0.5 * i / (n - 1);
         note('vln_spic', bf, bf + step, p, lv); note('vla_spic', bf, bf + step, p - 12, lv * 0.9);
@@ -1133,7 +1282,7 @@ export class Composer {
       const n = 15, sp = 1 / beats;
       for (let i = 0; i < n; i++) { const bf = endAt - sp + sp * i / n; note('harp', bf, bf + 0.5, scaleStep(top - 12, -(n - 1 - i) + 7, P.tonic, scaleNow), 0.45 + 0.4 * i / n); }
     } else if (gesture === 'fill') {
-      const n = beats === 4 ? 8 : 6, step = 1 / (beats * 4);
+      const n = beats === 4 ? 8 : 6, step = 1 / (E * 2);
       for (let i = 0; i < n; i++) ev.push({ type: 'perc', kind: i % 2 ? 'drum_hi' : i > n / 2 ? 'drum_f' : 'drum_p', t: timeOf(endAt - (n - i) * step), lev: 0.25 + 0.55 * i / (n - 1) });
     }
     if (cut) {
@@ -1141,6 +1290,15 @@ export class Composer {
       this.cutPending = true;
     }
 
+    const melTr = new Set(L.mel.map((l) => l.track));
+    const melEv = ev.filter((n) => n.type === 'note' && melTr.has(n.track));
+    if (melEv.length) for (const n of ev) {
+      if (n.type !== 'note' || !PAD_TRACKS.has(n.track)) continue;
+      const over = melEv.filter((m) => m.t < n.t + n.dur && m.t + m.dur > n.t);
+      if (!over.length) continue;
+      if (over.some((m) => Math.abs(m.pitch - n.pitch) <= 2 && m.pitch !== n.pitch)) n.lev *= 0.78;
+      else if (n.pitch > Math.max(...over.map((m) => m.pitch))) n.lev *= 0.86;
+    }
     // ---- dynamics: turn levels into the engine's per-note curves, following the phrase's shape along each note ----
     const out = [];
     const ONESHOT = new Set(['piano', 'piano_low', 'piano_mel', 'vln_spic', 'vla_spic', 'vc_spic', 'basses_spic', 'harp', 'timpani', 'marimba', 'glock', 'vln_pizz', 'vc_pizz', 'tbn_stac', 'horns_stac', 'tpt_stac']);

@@ -179,7 +179,7 @@ function describe(d) {
   if (L === 'Key') return [`A new piece begins in ${nice(w)}`, 100];
   if (L === 'Modulation') return [`A new piece begins, ${w} from the last`, 100];
   if (L === 'Mode') return [`mode: ${w}`, 20];
-  if (L === 'Tempo') return [w, 19];
+  if (L === 'Tempo') return [w.replace(' dotted-quarter beats per minute', ' dotted-quarter bpm'), 19];
   if (L === 'Meter') return [`${w} time`, 18];
   if (L === 'Length') return [`planned length ${w}`, 10];
   if (L === 'Palette') return [w, 17];
@@ -201,6 +201,8 @@ function describe(d) {
   if (L === 'Chord colour') return [w === 'keep it diatonic' ? '' : `colour: ${w}`, 42];
   if (L === 'Final chord') return [w.startsWith('a major') ? 'The piece will end on a major chord' : '', 44];
   if (L === 'Bass line') return ['the bass walks by step', 20];
+  if (L === 'Shape of the climax') return [w.startsWith('pulls') ? 'The climax will pull back before its last statement' : '', 58];
+  if (L === 'Basses wait for the answer') return [w.startsWith('yes') ? 'The basses wait for the answer' : '', 27];
   if (L === 'Phrase plan') return [`in phrases of ${w}`, 29];
   if (L === 'Melody pickup') return [w.startsWith('the tune') ? '' : `the tune begins with ${w}`, 24];
   if (L === 'Brass on the strong bars') return [w === 'accented chords' ? 'brass accents on the strong bars' : '', 23];
@@ -220,6 +222,7 @@ function describe(d) {
   if ((m = L.match(/^(Melody|Ostinato|Harmony|Bass): who joins$/))) return [`${capw(w)} ${plural(w) ? 'join' : 'joins'} ${ROLE_TEXT[m[1]]}`, 80];
   if (/: who drops out$/.test(L)) { const who = strip(w); return [`${capw(who)} ${plural(who) ? 'drop' : 'drops'} out`, 78]; }
   if (/: hand over$/.test(L)) { const who = strip(w); return [`${capw(who)} ${plural(who) ? 'step' : 'steps'} aside`, 78]; }
+  if (L === 'Several bow out') return [`The orchestra thins: ${d.names.slice(0, -1).join(', ')} and ${d.names[d.names.length - 1]} fade out`, 77];
   if (L.endsWith(' bows out')) { const who = strip(L.replace(' bows out', '').replace(' (melody)', '')); return [`${capw(who)} ${plural(who) ? 'fade' : 'fades'} out`, 76]; }
   if (L === 'Development') return [`Melody: ${DEV_TEXT[w] || w}`, 55];
   if (L === 'Motif mutation') return [w.startsWith('mutate') ? 'the tune will change slightly' : '', 12];
@@ -244,6 +247,12 @@ let shownCount = 0, streamStart = 0;
 // (an instrument's pattern, a section's length or chord pace) attach to the card they belong to
 function showCard(group) {
   shownCount += group.length;
+  // several instruments leaving at once read as one event
+  const outs = group.filter((d) => d.label.endsWith(' bows out'));
+  if (outs.length >= 3) {
+    const names = outs.map((d) => strip(d.label.replace(' bows out', '').replace(' (melody)', '')));
+    group = group.filter((d) => !outs.includes(d)).concat([{ ...outs[0], label: 'Several bow out', names }]);
+  }
   $('count').textContent = `${shownCount.toLocaleString()} choices made`;
   const items = group.map((d) => { const [text, pri] = describe(d); return { d, text, pri, who: (d.label.match(/^(.*): (subdivision|cell shape|process|accents|contrasting accents|cycle length|entrance)$/) || [])[1] }; }).filter((x) => x.text);
   if (!items.length) return;
@@ -293,7 +302,7 @@ function updateNow(p) {
   const now = p.ctx.currentTime;
   const info = p.infos.find((x) => now >= x.t0 && now < x.t1) || p.infos[0];
   if (!info) return;
-  $('piece').textContent = `No. ${info.piece} · ${info.key} ${cap(info.mode)} · ${info.meter} · ${info.bpm} bpm · ${info.palette}`;
+  $('piece').textContent = `No. ${info.piece} · ${info.key} ${cap(info.mode)} · ${info.meter} · ${info.bpm} ${info.meter === '6/8' ? 'dotted-quarter bpm' : 'bpm'} · ${info.palette}`;
   $('section').textContent = cap(info.section);
   $('secprog').textContent = `bar ${info.sectionBar + 1} of ${info.sectionBars} · phrase ${info.phrase + 1} of ${info.plan.length}${info.theme ? ', the theme' : info.kind === 'ante' ? ', a question' : info.kind === 'cons' ? ', its answer' : ''}`;
   let ch = info.chords[0];
