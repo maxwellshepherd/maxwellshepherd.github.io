@@ -839,17 +839,32 @@ export class Composer {
     const nextSlot = isLast ? P.form[P.secIdx + 1] : null;
     const nextRole = isLast ? (nextSlot ? nextSlot.role : 'new piece') : null;
     // ---- tempo map: section drift (builds press on, arrivals broaden, codas slow), rubato, and a breath at phrase ends ----
-    const nB = bars * beats, st = new Array(nB), T = [0];
-    for (let i = 0; i < nB; i++) {
-      const bar = sb + i / beats, prog = bar / S.bars;
-      let s = 1;
-      if (S.role === 'build') s /= 1 + 0.05 * prog;
-      else if (S.role === 'arrival' && sb < 2) s *= 1 + 0.05 * Math.max(0, 1 - bar / 2);
-      else if (S.role === 'coda') s *= 1 + 0.35 * Math.max(0, (bar - (S.bars - 3)) / 3);
-      s *= S.rub[Math.min(S.rub.length - 1, Math.floor(bar))] || 1;
-      if (i === nB - 1) { s *= S.breath; if (isLast) s *= nextRole === 'arrival' ? 1.14 : nextRole === 'breath' ? 1 : 1.05; }
-      st[i] = s; T.push(T[i] + beatDur * s);
-    }
+    // A running ostinato keeps strict time like a click track: rubato and phrase-end breaths shrink to a trace while
+    // one plays. The breath is a ritardando spread over the last bar (two bars into an arrival), never a lurch on one beat.
+    const nB = bars * beats;
+    let st, T;
+    const tempoMap = (pulsed) => {
+      st = new Array(nB); T = [0];
+      let X = S.breath - 1;                                                   // extra beats of time at the phrase end
+      if (isLast) X = (1 + X) * (nextRole === 'arrival' ? 1.14 : nextRole === 'breath' ? 1 : 1.05) - 1;
+      if (pulsed) X *= isLast ? (nextRole === 'arrival' ? 0.8 : 0.5) : 0.2;
+      const W = Math.min(nB, isLast && nextRole === 'arrival' ? 2 * beats : Math.max(2, beats));
+      const a = 2 * X / (W + 1);
+      const rubAmt = pulsed ? 0.3 : 1;
+      for (let i = 0; i < nB; i++) {
+        const bar = sb + i / beats, prog = bar / S.bars;
+        let s = 1;
+        if (S.role === 'build') s /= 1 + 0.05 * prog;
+        else if (S.role === 'arrival' && sb < 2) s *= 1 + 0.05 * Math.max(0, 1 - bar / 2);
+        else if (S.role === 'coda') s *= 1 + 0.35 * Math.max(0, (bar - (S.bars - 3)) / 3);
+        const k = Math.min(S.rub.length - 1, Math.floor(bar)), r0 = S.rub[k] || 1, r1 = S.rub[Math.min(S.rub.length - 1, k + 1)] || r0;
+        s *= 1 + (r0 + (r1 - r0) * (bar - Math.floor(bar)) - 1) * rubAmt;
+        const j = i - (nB - W);
+        if (j >= 0) s *= 1 + a * (j + 1) / W;
+        st[i] = s; T.push(T[i] + beatDur * s);
+      }
+    };
+    tempoMap(P.layers.ost.length > 0 || P.layers.bass.some((l) => l.kind === 'pulse' || l.kind === 'pizz'));
     const timeOf = (barF) => {
       const x = barF * beats;
       if (x <= 0) return t0 + x * beatDur * st[0];
@@ -871,6 +886,9 @@ export class Composer {
     P.energy = e;
     for (const l of P.layers.ost) l.thin = false;
     this.arrange(P, S, e, bars, sb, phI, timeOf, isLast);
+    // re-time the phrase now the arranger has decided what plays through its end
+    { const at = (l) => l.from - sb <= bars - 1 && l.until - sb >= bars - 0.01;
+      tempoMap(P.layers.ost.some(at) || P.layers.bass.some((l) => (l.kind === 'pulse' || l.kind === 'pizz') && at(l)) || S.brass === 'rhythm'); }
     const { chords, cadence, spans: chordSpan } = themeHalf ? this.themeChords(P, S, themeHalf, t0) : this.phraseChords(P, S, bars, t0, kind, timeOf);
     const chordAt = (barF) => { for (const [a, b, ch] of chordSpan) if (barF >= a - 1e-9 && barF < b) return ch; return barF < 0 ? chordSpan[0][2] : chordSpan[chordSpan.length - 1][2]; };
     const resolving = ['authentic', 'plagal', 'modal'].includes(cadence);

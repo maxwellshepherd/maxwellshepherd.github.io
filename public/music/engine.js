@@ -8,20 +8,20 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 // mix layout: one entry per performer track (gain dB, pan, sends, sampler behaviour)
 // ---------------------------------------------------------------------------
 export const TRACKS = {
-  piano:        { inst: 'piano', gain: -2, pan: -0.05, send: 0.32, depth: 9000, release: 0.45, dyn: 12, hum: 0.006 },
-  piano_low:    { inst: 'piano', gain: -4, pan: -0.1, send: 0.38, release: 0.9, dyn: 12, hum: 0.008, offset: -3 },
+  piano:        { inst: 'piano', gain: -2, pan: -0.05, send: 0.32, depth: 9000, release: 0.45, dyn: 12, hum: 0.004 },
+  piano_low:    { inst: 'piano', gain: -4, pan: -0.1, send: 0.38, release: 0.9, dyn: 12, hum: 0.005 },
   vln_theme:    { inst: 'vln_sus', gain: 2, pan: -0.45, send: 0.38, release: 0.7, dyn: 24, legato: true },
   vln_pad:      { inst: 'vln_sus', gain: -3, pan: -0.3, send: 0.42, release: 0.9, dyn: 26 },
   vln_high:     { inst: 'vln_sus', gain: -5, pan: -0.15, send: 0.55, long: 0.6, release: 1.4, dyn: 26 },
   vln_trem:     { inst: 'vln_trem', gain: -6, pan: -0.35, send: 0.5, release: 0.8, dyn: 22 },
-  vln_spic:     { inst: 'vln_spic', gain: 1, pan: -0.5, send: 0.33, depth: 7000, release: 0.12, dyn: 18, hum: 0.006, offset: 42 },
+  vln_spic:     { inst: 'vln_spic', gain: 1, pan: -0.5, send: 0.33, depth: 7000, release: 0.12, dyn: 18, hum: 0.004 },
   vla_pad:      { inst: 'vla_sus', gain: -1, pan: 0.15, send: 0.42, release: 0.9, dyn: 26 },
-  vla_spic:     { inst: 'vla_spic', gain: 2, pan: 0.2, send: 0.33, depth: 7000, release: 0.12, dyn: 18, hum: 0.006, offset: 19 },
+  vla_spic:     { inst: 'vla_spic', gain: 2, pan: 0.2, send: 0.33, depth: 7000, release: 0.12, dyn: 18, hum: 0.004 },
   vc_pad:       { inst: 'vc_sus', gain: 2, pan: 0.35, send: 0.4, release: 1.0, dyn: 26 },
   vc_theme:     { inst: 'vc_sus', gain: 0, pan: 0.35, send: 0.38, release: 0.7, dyn: 24, legato: true },
-  vc_spic:      { inst: 'vc_spic', gain: 1, pan: 0.45, send: 0.3, release: 0.15, dyn: 18, hum: 0.006, offset: 15 },
+  vc_spic:      { inst: 'vc_spic', gain: 1, pan: 0.45, send: 0.3, release: 0.15, dyn: 18, hum: 0.004 },
   basses:       { inst: 'cb_sus', gain: 5, pan: 0.45, send: 0.3, release: 1.0, dyn: 24 },
-  basses_spic:  { inst: 'cb_spic', gain: 3, pan: 0.6, send: 0.28, release: 0.2, dyn: 18, offset: 47 },
+  basses_spic:  { inst: 'cb_spic', gain: 3, pan: 0.6, send: 0.28, release: 0.2, dyn: 18, hum: 0.004 },
   horns:        { inst: 'hn_sus', gain: 2, pan: -0.35, send: 0.6, depth: 6000, release: 0.8, dyn: 26, legato: true },
   horns_chords: { inst: 'hn_sus', gain: -2, pan: -0.2, send: 0.6, depth: 6000, release: 0.9, dyn: 26 },
   trumpets:     { inst: 'tpt_sus', gain: -0.5, pan: 0.15, send: 0.55, depth: 8000, release: 0.7, dyn: 26, legato: true },
@@ -29,23 +29,23 @@ export const TRACKS = {
   tuba:         { inst: 'tba_sus', gain: 0, pan: 0.4, send: 0.45, depth: 6000, release: 0.8, dyn: 26 },
   organ:        { inst: 'org_loud_man', gain: -8, pan: 0, send: 0.45, release: 1.2, dyn: 20 },
   organ_soft:   { inst: 'org_q_man', gain: -6, pan: 0, send: 0.5, release: 1.2, dyn: 18 },
-  organ_arp:    { inst: 'org_loud_man', gain: -8, pan: 0.05, send: 0.45, depth: 6000, release: 0.25, dyn: 16, hum: 0, offset: 10 },
+  organ_arp:    { inst: 'org_loud_man', gain: -8, pan: 0.05, send: 0.45, depth: 6000, release: 0.25, dyn: 16, hum: 0 },
   organ_pedal:  { inst: 'org_loud_ped', gain: -1, pan: 0, send: 0.4, release: 1.5, dyn: 18, lp: 1800 },   // the pedal samples carry a 4 kHz whistle
-  clarinets:    { inst: 'cl_sus', gain: -1, pan: -0.1, send: 0.42, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 25 },
-  flutes:       { inst: 'fl_sus', gain: -8, pan: -0.2, send: 0.45, depth: 7000, release: 0.18, dyn: 20, hum: 0.006, offset: 8 },
+  clarinets:    { inst: 'cl_sus', gain: -1, pan: -0.1, send: 0.42, depth: 7000, release: 0.18, dyn: 20, hum: 0.004 },
+  flutes:       { inst: 'fl_sus', gain: -8, pan: -0.2, send: 0.45, depth: 7000, release: 0.18, dyn: 20, hum: 0.004 },
   bassoons:     { inst: 'bsn_sus', gain: 0, pan: 0.15, send: 0.42, release: 0.6, dyn: 22, legato: true },
-  horns_stac:   { inst: 'hn_stac', gain: -4, pan: -0.3, send: 0.6, depth: 6000, release: 0.35, dyn: 20, hum: 0.006 },
-  tbn_stac:     { inst: 'tbn_stac', gain: 2, pan: 0.35, send: 0.55, depth: 6000, release: 0.35, dyn: 20, hum: 0.006 },
-  tpt_stac:     { inst: 'tpt_stac', gain: -3, pan: 0.15, send: 0.55, depth: 8000, release: 0.3, dyn: 20, hum: 0.006 },
-  harp:         { inst: 'harp', gain: 2, pan: -0.6, send: 0.45, depth: 7000, release: 1.0, dyn: 10, hum: 0.005 },
-  timpani:      { inst: 'timp_hit', gain: 6, pan: 0.1, send: 0.5, release: 2.0, dyn: 18, hum: 0.004, offset: -2 },
+  horns_stac:   { inst: 'hn_stac', gain: -4, pan: -0.3, send: 0.6, depth: 6000, release: 0.35, dyn: 20, hum: 0.004 },
+  tbn_stac:     { inst: 'tbn_stac', gain: 2, pan: 0.35, send: 0.55, depth: 6000, release: 0.35, dyn: 20, hum: 0.004 },
+  tpt_stac:     { inst: 'tpt_stac', gain: -3, pan: 0.15, send: 0.55, depth: 8000, release: 0.3, dyn: 20, hum: 0.004 },
+  harp:         { inst: 'harp', gain: 2, pan: -0.6, send: 0.45, depth: 7000, release: 1.0, dyn: 10, hum: 0.004 },
+  timpani:      { inst: 'timp_hit', gain: 6, pan: 0.1, send: 0.5, release: 2.0, dyn: 18, hum: 0.004 },
   timp_roll:    { inst: 'timp_roll', gain: -22, pan: 0.1, send: 0.5, release: 0.6, dyn: 24 },
-  piano_mel:    { inst: 'piano', gain: 1, pan: 0.05, send: 0.36, depth: 9000, release: 0.6, dyn: 12, hum: 0.006 },
+  piano_mel:    { inst: 'piano', gain: 1, pan: 0.05, send: 0.36, depth: 9000, release: 0.6, dyn: 12, hum: 0.004 },
   oboe:         { inst: 'ob_vib', gain: -2.5, pan: 0.1, send: 0.45, depth: 8000, release: 0.5, dyn: 22, legato: true },
-  marimba:      { inst: 'marimba', gain: 4, pan: 0.25, send: 0.4, release: 0.6, dyn: 14, hum: 0.006 },
-  glock:        { inst: 'glock', gain: 2, pan: -0.25, send: 0.5, depth: 9000, release: 1.2, dyn: 12, hum: 0.005 },
-  vln_pizz:     { inst: 'vln_pizz', gain: 0, pan: -0.4, send: 0.4, release: 0.3, dyn: 16, hum: 0.006 },
-  vc_pizz:      { inst: 'vc_pizz', gain: 2, pan: 0.35, send: 0.35, release: 0.4, dyn: 16, hum: 0.006 },
+  marimba:      { inst: 'marimba', gain: 4, pan: 0.25, send: 0.4, release: 0.6, dyn: 14, hum: 0.004 },
+  glock:        { inst: 'glock', gain: 2, pan: -0.25, send: 0.5, depth: 9000, release: 1.2, dyn: 12, hum: 0.004 },
+  vln_pizz:     { inst: 'vln_pizz', gain: 0, pan: -0.4, send: 0.4, release: 0.3, dyn: 16, hum: 0.004 },
+  vc_pizz:      { inst: 'vc_pizz', gain: 2, pan: 0.35, send: 0.35, release: 0.4, dyn: 16, hum: 0.004 },
 };
 // synth / sound-design buses
 const SYN = {
@@ -336,7 +336,7 @@ export class Engine {
     const d0 = curve[0][1];
     const nl = I.layers.length;
     const sustain = I.kind === 'sustain';
-    let t = n.t + (cfg.offset || 0) / 1000 + gauss(this.rng) * (cfg.hum ?? 0.009);
+    let t = n.t + clamp(gauss(this.rng), -2.5, 2.5) * (cfg.hum ?? 0.009);
     let so = n.startOffset || 0, fi = n.fadeIn || 0;
     let rel = n.legOut && cfg.legato ? 0.2 : (n.release ?? cfg.release);
     const leg = cfg.legato && n.legIn;
@@ -361,23 +361,25 @@ export class Engine {
       for (let li = 0; li < nl; li++) { const r = this._pick(cfg.inst, n.pitch, I.layers[li]); if (r && Math.abs(r.root - n.pitch) < bd - 0.5) { bd = Math.abs(r.root - n.pitch); bl = li; } }
       if (bl !== lo) { lo = hi = bl; regLo = this._pick(cfg.inst, n.pitch, I.layers[bl]); }
     }
-    // timing compensation
-    if (sustain) {
-      let att = regLo.attack || 0;
-      if (!leg && att > 0.2) { const skip = Math.min(0.35 * att, 0.25); so += skip; att -= skip; fi = Math.max(fi, 0.06); }
-      else if (leg) att = Math.max(0, att - 0.14);
-      t -= Math.min(0.6 * att, 0.22) + (leg ? 0.06 : 0);
-    } else {
-      t -= regLo.onset || 0;
-    }
-    if (fi === 0 && sustain && d0 < 0.3 && !n.fadeIn) fi = 0.25;
+    const regs = [];
+    for (let li = lo; li <= hi; li++) regs.push(li === lo ? regLo : this._pick(cfg.inst, n.pitch, I.layers[li]));
+    // soft held notes ease in; short notes keep the sample's own attack
+    if (fi === 0 && sustain && d0 < 0.3 && !n.fadeIn && n.dur >= 0.8) fi = 0.25;
+    // timing: start the voice early by exactly the time it takes to become audible, so every instrument's attack
+    // lands on the beat. Legato notes take over from a note that is still sounding, so they align a little later.
+    const rate = Math.pow(2, (n.pitch - regLo.root) / 12);
+    const parts = regs.map((r, k) => [r, lo === hi ? 1 : Math.sqrt(clamp(1 - Math.abs(posOf(d0) - (lo + k)), 0, 1))]).filter(([r, w]) => r && w > 0);
+    const thr = leg ? 6 : 12;
+    let lead = this._attack(parts, so, rate, fi, thr);
+    if (!leg && lead > 0.2) { so += (lead - 0.2) * rate; fi = Math.max(fi, 0.03); lead = this._attack(parts, so, rate, fi, thr); }   // very slow swells: skip the inaudible start
+    t -= lead;
     t = Math.max(t, c.currentTime + 0.005);
     const dynRange = cfg.dyn || 24;
     const gainOf = (d) => db(-dynRange * Math.pow(1 - clamp(d, 0, 1), 1.2));
     const end = t + dur;
     const kill = this._voice(n.track);
     for (let li = lo; li <= hi; li++) {
-      const reg = li === lo ? regLo : this._pick(cfg.inst, n.pitch, I.layers[li]);
+      const reg = regs[li - lo];
       if (!reg) continue;
       const buf = this.buffers[reg.f];
       const src = c.createBufferSource();
@@ -409,7 +411,40 @@ export class Engine {
       this.voices++;
       src.onended = () => { this.voices--; g.disconnect(); };
     }
-    if (this.onNote) this.onNote(n.track, n.pitch, t, n.dur, d0);
+    if (this.onNote) this.onNote(n.track, n.pitch, t + lead, n.dur, d0);
+  }
+
+  // Envelope of a region's opening 0.8 s (2 ms hop, 4 ms RMS window), measured once from the decoded audio.
+  _env(reg) {
+    if (reg.env) return reg.env;
+    const buf = this.buffers[reg.f], sr = buf.sampleRate, hop = Math.round(0.002 * sr), off = Math.round((reg.off || 0) * sr);
+    const A = buf.getChannelData(0), B = buf.numberOfChannels > 1 ? buf.getChannelData(1) : A;
+    const n = Math.max(1, Math.min(400, Math.floor((buf.length - off) / hop)));
+    const env = new Float32Array(n);
+    for (let k = 0; k < n; k++) {
+      const i0 = Math.max(0, off + (k - 1) * hop), i1 = Math.min(buf.length, off + (k + 1) * hop);
+      let s = 0;
+      for (let i = i0; i < i1; i++) { const x = A[i] + B[i]; s += x * x; }
+      env[k] = Math.sqrt(s / Math.max(1, i1 - i0)) * (reg.gain || 1);
+    }
+    return (reg.env = env);
+  }
+  // Seconds from a voice's start to its perceptual attack: where the summed envelope of its layers, read from the
+  // start offset at the playback rate and under the fade-in, first comes within thrDb of the level it settles at.
+  _attack(parts, so, rate, fi, thrDb) {
+    const H = 0.002, N = 300, out = new Float32Array(N);
+    let ref = 0;
+    for (let k = 0; k < N; k++) {
+      const u = k * H;
+      let v = 0;
+      for (const [reg, w] of parts) { const e = this._env(reg), j = Math.round((so + u * rate) / H); v += w * e[Math.min(j, e.length - 1)]; }
+      v *= Math.min(1, u / Math.max(fi, 0.004));
+      out[k] = v;
+      if (u <= 0.5) ref = Math.max(ref, v);
+    }
+    const thr = ref * Math.pow(10, -thrDb / 20);
+    for (let k = 0; k < N; k++) if (out[k] >= thr) return k * H;
+    return 0;
   }
 
   // ---------------- synth layers ----------------
@@ -499,7 +534,7 @@ export class Engine {
     const c = this.ctx;
     let ts = t;
     if (kind === 'cym_roll') ts = t - (r.peak || 0);          // roll lands on its target
-    else ts = t - (r.onset || 0);
+    else ts = t - this._attack([[r, 1]], 0, 1, 0, 12);
     const src = c.createBufferSource(); src.buffer = this.buffers[r.f];
     const g = c.createGain(); g.gain.value = level;
     src.connect(g); g.connect(this._voice('~perc'));
